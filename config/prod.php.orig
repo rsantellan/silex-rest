@@ -1,0 +1,14 @@
+<?php
+
+// configure your app for the production environment
+
+$app->register(new Silex\Provider\DoctrineServiceProvider(), array(
+    'dbs.options' => array (
+            'driver'    => 'pdo_mysql',
+            'host'      => 'localhost',
+            'dbname'    => 'my_database',
+            'user'      => 'my_username',
+            'password'  => 'my_password',
+            'charset'   => 'utf8mb4',
+    ),
+));

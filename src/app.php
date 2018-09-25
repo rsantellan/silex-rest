@@ -22,6 +22,8 @@ $app['security.jwt'] = [
 $app->register(new Silex\Provider\SecurityJWTServiceProvider());
 
 $app['users'] = function () use ($app) {
+	return new \Maith\Security\UserProvider($app['db']);
+	/*
     $users = [
         'admin' => array(
             'roles' => array('ROLE_ADMIN'),
@@ -32,6 +34,7 @@ $app['users'] = function () use ($app) {
     ];
 
     return new \Symfony\Component\Security\Core\User\InMemoryUserProvider($users);
+    */
 };
 
 $app['security.firewalls'] = array(
