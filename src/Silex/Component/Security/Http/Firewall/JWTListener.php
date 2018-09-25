@@ -104,9 +104,7 @@ class JWTListener implements ListenerInterface {
         if (null === $requestToken) {
             return $requestToken;
         }
-
         $requestToken = trim(str_replace($prefix, "", $requestToken));
-
         return $requestToken;
     }
 }

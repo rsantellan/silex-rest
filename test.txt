@@ -1,0 +1,12 @@
+curl --request POST \
+  --url http://localhost:8888/api/login \
+  --header 'content-type: application/json' \
+  --data '{
+	"_username": "admin",
+	"_password": "foo"
+}'
+
+curl --request GET \
+  --url http://localhost:8888/ \
+  --header 'content-type: application/json' \
+  --header 'x-access-token: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoiYWRtaW4iLCJleHAiOjE1MzYwNzUzNDd9.13ayyG6QP3tgPsSBgwg0SHKrdKyVk_2Se_yMqnR8_9E'

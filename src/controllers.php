@@ -11,16 +11,20 @@ use Symfony\Component\Security\Core\Exception\UsernameNotFoundException;
 //Request::setTrustedProxies(array('127.0.0.1'));
 
 $app->get('/', function () use ($app) {
-    return "Hola mundo";
+    $token = $app['security.token_storage']->getToken();
+    $response = [
+                'success' => true,
+                'username' => $token->getUsername(),
+                //'username' => $token->getUser()->getId(),
+                //'token' => $app['security.jwt.encoder']->encode(['name' => $user->getUsername()]),
+            ];
+    return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
 })
 ->bind('homepage')
 ;
 
 $app->post('/api/login', function(Request $request) use ($app){
-    var_dump($request->getContent());
-    var_dump(json_decode($request->getContent()));
     $vars = json_decode($request->getContent(), true);
-    var_dump($vars);
     try {
         if (empty($vars['_username']) || empty($vars['_password'])) {
             throw new UsernameNotFoundException(sprintf('Username "%s" does not exist.', $vars['_username']));
@@ -43,6 +47,7 @@ $app->post('/api/login', function(Request $request) use ($app){
         $response = [
             'success' => false,
             'error' => 'Invalid credentials',
+            'aux' => $e->getMessage(),
         ];
     }
 
