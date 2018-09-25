@@ -22,15 +22,20 @@ $app['security.jwt'] = [
 $app->register(new Silex\Provider\SecurityJWTServiceProvider());
 
 $app->register(new Silex\Provider\DoctrineServiceProvider(), array(
-    'dbs.options' => array (
-            'driver'    => 'pdo_mysql',
-            'host'      => DB_HOST,
-            'dbname'    => DB_SCHEMA,
-            'user'      => DB_USERNAME,
-            'password'  => DB_PASSWORD,
-            'charset'   => 'utf8mb4',
+    'db.options' => array (
+        'driver'    => 'pdo_mysql',
+        'host'      => DB_HOST,
+        'dbname'    => DB_SCHEMA,
+        'user'      => DB_USERNAME,
+        'password'  => DB_PASSWORD,
+        'charset'   => 'utf8mb4',
     ),
 ));
+
+$app['security.default_encoder'] = function ($app) {
+    // Plain text (e.g. for debugging)
+    return new \Maith\Security\Md5PasswordEncoder();
+};
 
 $app['users'] = function () use ($app) {
 	return new \Maith\Security\UserProvider($app['db']);

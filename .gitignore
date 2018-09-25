@@ -1,2 +1,4 @@
 /vendor/
 /config/db.php
+!var/logs/.gitkeep
+/var/logs/*
