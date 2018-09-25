@@ -21,6 +21,17 @@ $app['security.jwt'] = [
 ];
 $app->register(new Silex\Provider\SecurityJWTServiceProvider());
 
+$app->register(new Silex\Provider\DoctrineServiceProvider(), array(
+    'dbs.options' => array (
+            'driver'    => 'pdo_mysql',
+            'host'      => DB_HOST,
+            'dbname'    => DB_SCHEMA,
+            'user'      => DB_USERNAME,
+            'password'  => DB_PASSWORD,
+            'charset'   => 'utf8mb4',
+    ),
+));
+
 $app['users'] = function () use ($app) {
 	return new \Maith\Security\UserProvider($app['db']);
 	/*

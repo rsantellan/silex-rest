@@ -20,13 +20,13 @@ class UserProvider implements UserProviderInterface
 
     public function loadUserByUsername($username)
     {
-        $stmt = $this->conn->executeQuery('SELECT * FROM users WHERE username = ?', array(strtolower($username)));
+        $stmt = $this->conn->executeQuery('SELECT id, email, password, id_role, name FROM ec_administrative_users WHERE username = ?', array($username));
 
         if (!$user = $stmt->fetch()) {
             throw new UsernameNotFoundException(sprintf('Username "%s" does not exist.', $username));
         }
 
-        return new User($user['username'], $user['password'], explode(',', $user['roles']), true, true, true, true);
+        return new User($user['username'], $user['password'], explode(',', $user['id_role']), true, true, true, true);
     }
 
     public function refreshUser(UserInterface $user)
