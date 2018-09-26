@@ -9,4 +9,9 @@ curl --request POST \
 curl --request GET \
   --url http://localhost:8888/ \
   --header 'content-type: application/json' \
-  --header 'x-access-token: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoiYWRtaW4iLCJleHAiOjE1MzYwNzUzNDd9.13ayyG6QP3tgPsSBgwg0SHKrdKyVk_2Se_yMqnR8_9E'
+  --header 'x-access-token: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoicmRlbGVvbkBlc3R1ZGlvY29udGFibGUuY29tLnV5IiwiZXhwIjoxNTM4MDEwMjE1fQ.0MAo387htr0y3sOIJ1bZqSFBAlJ9yyPZczR8r-KHp5E'
+
+curl --request GET \
+  --url http://localhost:8888/ \
+  --header 'content-type: application/json' \
+  --header 'x-access-token: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoicmRlbGVvbkBlc3R1ZGlvY29udGFibGUuY29tLnV5IiwiZXhwIjoxNTM4MDEwMjE1fQ.0MAo387htr0y3sOIJ1bZqSFBAlJ9yyPZczR8r-KHp5E'

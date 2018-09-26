@@ -22,13 +22,23 @@ $app['security.jwt'] = [
 $app->register(new Silex\Provider\SecurityJWTServiceProvider());
 
 $app->register(new Silex\Provider\DoctrineServiceProvider(), array(
-    'db.options' => array (
-        'driver'    => 'pdo_mysql',
-        'host'      => DB_HOST,
-        'dbname'    => DB_SCHEMA,
-        'user'      => DB_USERNAME,
-        'password'  => DB_PASSWORD,
-        'charset'   => 'utf8mb4',
+    'dbs.options' => array (
+        'mysql_read' => array(
+            'driver'    => 'pdo_mysql',
+            'host'      => DB_HOST,
+            'dbname'    => DB_SCHEMA,
+            'user'      => DB_USERNAME,
+            'password'  => DB_PASSWORD,
+            'charset'   => 'utf8mb4',
+        ),
+        'mysql_write' => array(
+            'driver'    => 'pdo_mysql',
+            'host'      => DB_CLIENT_HOST,
+            'dbname'    => DB_CLIENT_SCHEMA,
+            'user'      => DB_CLIENT_USERNAME,
+            'password'  => DB_CLIENT_PASSWORD,
+            'charset'   => 'utf8mb4',
+        ),
     ),
 ));
 
@@ -38,7 +48,7 @@ $app['security.default_encoder'] = function ($app) {
 };
 
 $app['users'] = function () use ($app) {
-	return new \Maith\Security\UserProvider($app['db']);
+	return new \Maith\Security\UserProvider($app['dbs']['mysql_read'], $app['dbs']['mysql_write']);
 	/*
     $users = [
         'admin' => array(

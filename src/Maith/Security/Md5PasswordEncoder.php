@@ -23,9 +23,6 @@ class Md5PasswordEncoder extends \Symfony\Component\Security\Core\Encoder\BasePa
      */
     public function isPasswordValid($encoded, $raw, $salt)
     {
-    	var_dump($encoded);
-    	var_dump($raw);
-    	var_dump($salt);
         return !$this->isPasswordTooLong($raw) && $this->comparePasswords($encoded, $this->encodePassword($raw, $salt));
     }
 }

@@ -4,3 +4,7 @@ const DB_USERNAME = 'username';
 const DB_PASSWORD = 'password';
 const DB_HOST = 'host';
 const DB_SCHEMA = 'schema';
+const DB_CLIENT_USERNAME = 'username';
+const DB_CLIENT_PASSWORD = 'password';
+const DB_CLIENT_HOST = 'host';
+const DB_CLIENT_SCHEMA = 'schema';

@@ -63,7 +63,6 @@ class JWTListener implements ListenerInterface {
         $requestToken = $this->getToken(
             $request->headers->get($this->options['header_name'], null)
         );
-
         if (!empty($requestToken)) {
             try {
                 $decoded = $this->encode->decode($requestToken);
@@ -82,7 +81,11 @@ class JWTListener implements ListenerInterface {
                 $this->securityContext->setToken($authToken);
 
             } catch (HttpEncodingException $e) {
+                var_dump($e->getMessage());
             } catch (\UnexpectedValueException $e) {
+                var_dump($e->getMessage());
+            } catch(\Exception $e){
+                var_dump($e->getMessage());
             }
         }
     }
