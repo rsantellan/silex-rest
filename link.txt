@@ -1,0 +1,6 @@
+https://swagger.io/docs/specification/data-models/data-types/
+https://stackoverflow.com/questions/32910065/how-can-i-represent-authorization-bearer-token-in-a-swagger-spec-swagger-j
+https://swagger.io/docs/specification/adding-examples/
+https://github.com/Rebilly/ReDoc/blob/master/cli/README.md
+https://github.com/Rebilly/ReDoc#redoc-cli
+https://stackoverflow.com/questions/25800493/converting-swagger-specification-json-to-html-documentation
