@@ -51,6 +51,22 @@ $app->get('/api/month-amount/{year}/{month}', function ($year, $month) use ($app
 ->bind('month-amount')
 ;
 
+$app->get('/api/news', function(Request $request) use ($app){
+    $token = $app['security.token_storage']->getToken();
+    $response = [
+                'success' => true,
+                'username' => $token->getUsername(),
+            ];
+
+    $returnData = [
+        'sucess' => true,
+        'news' => $app['news']->retrieveLastNews(),
+    ];
+    return $app->json($returnData, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+})
+->bind('news')
+;
+
 $app->post('/api/login', function(Request $request) use ($app){
     $vars = json_decode($request->getContent(), true);
     try {

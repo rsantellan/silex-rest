@@ -63,6 +63,10 @@ $app['users'] = function () use ($app) {
     */
 };
 
+$app['news'] = function () use ($app){
+    return new \Maith\Data\NewsProvider($app['dbs']['mysql_write']);
+};
+
 $app['security.firewalls'] = array(
     'login' => [
         'pattern' => 'login|register|oauth',
