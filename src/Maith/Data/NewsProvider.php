@@ -20,7 +20,7 @@ class NewsProvider
     		$limit = 5;
     	}
     	$sql = 'select id, title, content, author, timestamp from ec_blog where private=0 order by id desc limit '.$limit;
-    	$stmt = $this->conn->executeQuery($sql, array($email));
+    	$stmt = $this->conn->executeQuery($sql, array());
         return $stmt->fetchAll();
     }
 }
