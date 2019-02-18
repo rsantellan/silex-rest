@@ -12,7 +12,6 @@ use Symfony\Component\Security\Core\Exception\UsernameNotFoundException;
 
 $app->get('/api/', function () use ($app) {
     $token = $app['security.token_storage']->getToken();
-    //var_dump($token);
     $response = [
                 'success' => true,
                 'username' => $token->getUsername(),
@@ -42,8 +41,8 @@ $app->post('/api/month-amount', function (Request $request) use ($app) {
         $response = [
                     'success' => false,
                 ];
-        $returnData = ['message' => 'Bad params'];
-    } else {
+	$returnData = ['message' => 'Bad params'];
+    }else{
         $response = [
                     'success' => true,
                     'username' => $token->getUsername(),
@@ -58,7 +57,7 @@ $app->post('/api/month-amount', function (Request $request) use ($app) {
         }
         
         if($clientId){
-            $url = 'http://contable3.local:9450/app_dev.php/localhost/%s/%s/%s/payments';
+	    $url = 'http://estudiocontable.com.uy/contable3/localhost/%s/%s/%s/payments';
             $string = file_get_contents(sprintf($url, $clientId, $month, $year));
             $returnData = json_decode($string);
         }
@@ -109,9 +108,12 @@ $app->post('/api/current-account-data', function (Request $request) use ($app) {
         }
         $returnData = [];
         if($found){
-            $url = 'http://contable3.local:9450/localhost/%s/%s/%s/ccte';
+            $url = 'http://estudiocontable.com.uy/contable3/localhost/%s/%s/%s/ccte';
             $string = file_get_contents(sprintf($url, $folder, $month, $year));
             $returnData = json_decode($string);
+            $response['success'] = true;
+	    if(isset($response['isvalid']))
+	    	unset($response['isvalid']);
         }else{
             $response['success'] = false;
         }
@@ -183,5 +185,5 @@ $app->error(function (\Exception $e, Request $request, $code) use ($app) {
     if ($app['debug']) {
         return;
     }
-    return $e->getTraceAsString();
+    return sprintf('%s -> %s', $e->getMessage(), $e->getTraceAsString());
 });
