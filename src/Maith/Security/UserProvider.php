@@ -35,6 +35,19 @@ class UserProvider implements UserProviderInterface
         return new User($user['email'], $user['password'], array('1'), true, true, true, true);
     }
 
+    public function saveLoadedUsername($username)
+    {
+        $sql = 'replace into mobile_users (username) values (?)';
+        $this->conn->executeUpdate($sql, array($username));
+        return true;
+    }
+
+    public function getAllLoggedUsernames()
+    {
+        $sql = 'select username from mobile_users';
+        return $this->conn->fetchAll($sql);
+    }
+
     public function refreshUser(UserInterface $user)
     {
         if (!$user instanceof User) {

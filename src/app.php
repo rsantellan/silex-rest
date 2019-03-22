@@ -49,23 +49,21 @@ $app['security.default_encoder'] = function ($app) {
 
 $app['users'] = function () use ($app) {
 	return new \Maith\Security\UserProvider($app['dbs']['mysql_read'], $app['dbs']['mysql_write']);
-	/*
-    $users = [
-        'admin' => array(
-            'roles' => array('ROLE_ADMIN'),
-            // raw password is foo
-            'password' => '5FZ2Z8QIkA7UTZ4BYkoC+GsReLf569mSKDsfods6LYQ8t+a8EW9oaircfMpmaLbPBh4FOBiiFyLfuZmTSUwzZg==',
-            'enabled' => true
-        ),
-    ];
-
-    return new \Symfony\Component\Security\Core\User\InMemoryUserProvider($users);
-    */
 };
 
 $app['news'] = function () use ($app){
     return new \Maith\Data\NewsProvider($app['dbs']['mysql_write']);
 };
+
+$app['pushapi'] = function () use ($app){
+    return new \Maith\Push\Api(HOST_PUSH_CODE, URL_PUSH_CODE, KEY_PUSH_CODE);
+};
+
+$app['contableData'] = function () use ($app){
+    return new \Maith\Data\ContableData(URL_CONTABLE_PAYMENT, URL_CONTABLE_CCTE);
+};
+
+
 
 $app['security.firewalls'] = array(
     'login' => [

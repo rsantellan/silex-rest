@@ -41,7 +41,7 @@ $app->post('/api/month-amount', function (Request $request) use ($app) {
         $response = [
                     'success' => false,
                 ];
-	$returnData = ['message' => 'Bad params'];
+	    $returnData = ['message' => 'Bad params'];
     }else{
         $response = [
                     'success' => true,
@@ -57,9 +57,7 @@ $app->post('/api/month-amount', function (Request $request) use ($app) {
         }
         
         if($clientId){
-	    $url = 'http://estudiocontable.com.uy/contable3/localhost/%s/%s/%s/payments';
-            $string = file_get_contents(sprintf($url, $clientId, $month, $year));
-            $returnData = json_decode($string);
+            $returnData = $app['contableData']->returnPayments($clientId, $month, $year);
         }
     }
     return $app->json($returnData, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
@@ -108,9 +106,7 @@ $app->post('/api/current-account-data', function (Request $request) use ($app) {
         }
         $returnData = [];
         if($found){
-            $url = 'http://estudiocontable.com.uy/contable3/localhost/%s/%s/%s/ccte';
-            $string = file_get_contents(sprintf($url, $folder, $month, $year));
-            $returnData = json_decode($string);
+            $returnData = $app['contableData']->returnCcte($folder, $month, $year);
             $response['success'] = true;
 	    if(isset($response['isvalid']))
 	    	unset($response['isvalid']);
@@ -152,6 +148,7 @@ $app->post('/api/login', function(Request $request) use ($app){
         if (! $app['security.default_encoder']->isPasswordValid($user->getPassword(), $vars['_password'], '')) {
             throw new UsernameNotFoundException(sprintf('Username "%s" does not exist 2.', $vars['_username']));
         } else {
+            $app['users']->saveLoadedUsername($user->getUsername());
             $response = [
                 'success' => true,
                 'error' => '',
@@ -186,4 +183,79 @@ $app->error(function (\Exception $e, Request $request, $code) use ($app) {
         return;
     }
     return sprintf('%s -> %s', $e->getMessage(), $e->getTraceAsString());
+});
+
+$app->get('/send-data/{password}', function($password) use($app){
+    $response = [
+            'success' => false,
+            'error' => 'Error',
+    ];
+    if($password === PASSWORD_PUSH_CODE){
+        $response['success'] = true;
+        $loggedUsers = $app['users']->getAllLoggedUsernames();
+        $users = [];
+        foreach($loggedUsers as $user){
+            $username = $user['username'];
+            $clients = $app['users']->loadClientByUsername($token->getUsername());
+            $year = (int) date('Y');
+            $month = (int) date('n');
+            /*
+            // Asumo CCTE
+            
+            $folders = [];
+            if(count($clients) > 0){
+                foreach($clients as $client){
+                    if($client['folder_number'] == $folder){
+                        $folders[] = $folder;
+                    }
+                }
+            }
+            
+            $returnList = [];
+            $sendMessage = false;
+            foreach($folders as $folder)
+            {
+                $oldFilesName = SAVE_DATA_FILES.'/'.sprintf('%s-%s-%s', $clientId,$month,$year);
+                $returnData = md5(serialize($app['contableData']->returnCcte($folder, $month, $year)));
+                $oldHash = file_get_contents($oldFilesName);
+                // Compare to a saved file.
+                if($oldHash === $returData){
+                    // do nothing
+                }else{
+                    // Send message
+                    $sendMessage = true;
+                    $users[$username] = $username;
+                    // Save again to file
+                    file_put_contents($oldFilesName, $returData);
+                }
+            }
+            */
+            // Asumo Payments
+            $clientId = null;
+            if(count($clients) > 0){
+                $first = array_pop($clients);
+                $clientId = $first['id'];
+            }
+            if($clientId){
+                $oldFilesName = SAVE_DATA_FILES.'/'.sprintf('%s-%s-%s', $clientId,$month,$year);
+                $returnData = md5(serialize($app['contableData']->returnPayments($clientId, $month, $year)));
+                $oldHash = file_get_contents($oldFilesName);
+                // Compare to a saved file.
+                if($oldHash === $returData){
+                    // do nothing
+                }else{
+                    // Send message
+                    $sendMessage = true;
+                    $users[$username] = $username;
+                    // Save again to file
+                    file_put_contents($oldFilesName, $returData);
+                }
+            }            
+
+        }
+        $title = 'This is a title';
+        $body = 'This is a body';
+        $returnData = $app['pushapi']->doPush($title, $body, $users);
+    }
+    return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
 });

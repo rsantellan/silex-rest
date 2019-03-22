@@ -4,7 +4,8 @@
         "symfony/monolog-bridge": "~2.8|^3.0",
         "symfony/security": "~2.8|^3.0",
         "firebase/php-jwt": "^4.0",
-        "doctrine/dbal": "^2.5"
+        "doctrine/dbal": "^2.5",
+        "guzzlehttp/guzzle": "^6.3"
     },
     "autoload": {
         "psr-0": { "": "src/" }
