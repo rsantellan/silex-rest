@@ -21,7 +21,7 @@ class ContableData
 
 		/** Object Way **/
 		$client = new Client();
-		$response = $client->get($this->urlPayments);
+		$response = $client->get($url);
 		if($response){
 			return $response->getBody()->getContents();
         }
@@ -33,10 +33,10 @@ class ContableData
 
 	public function returnCcte($folder, $month, $year)
 	{
-		$url = sprintf($this->urlCcte, $folder, $month, $year)
+		$url = sprintf($this->urlCcte, $folder, $month, $year);
 		/** Object Way **/
 		$client = new Client();
-		$response = $client->get($this->urlPayments);
+		$response = $client->get($url);
 		if($response){
 			return $response->getBody()->getContents();
         }

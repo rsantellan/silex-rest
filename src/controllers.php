@@ -192,11 +192,13 @@ $app->get('/send-data/{password}', function($password) use($app){
     ];
     if($password === PASSWORD_PUSH_CODE){
         $response['success'] = true;
+        $response['error'] = '';
         $loggedUsers = $app['users']->getAllLoggedUsernames();
         $users = [];
         foreach($loggedUsers as $user){
             $username = $user['username'];
-            $clients = $app['users']->loadClientByUsername($token->getUsername());
+            $email = $user['email'];
+            $clients = $app['users']->loadClientByUsername($email);
             $year = (int) date('Y');
             $month = (int) date('n');
             /*
@@ -239,23 +241,31 @@ $app->get('/send-data/{password}', function($password) use($app){
             if($clientId){
                 $oldFilesName = SAVE_DATA_FILES.'/'.sprintf('%s-%s-%s', $clientId,$month,$year);
                 $returnData = md5(serialize($app['contableData']->returnPayments($clientId, $month, $year)));
-                $oldHash = file_get_contents($oldFilesName);
+		$oldHash = null;
+		if(file_exists($oldFilesName))
+		{
+			$oldHash = file_get_contents($oldFilesName);
+		}
                 // Compare to a saved file.
-                if($oldHash === $returData){
+                if($oldHash === $returnData){
                     // do nothing
                 }else{
                     // Send message
                     $sendMessage = true;
                     $users[$username] = $username;
                     // Save again to file
-                    file_put_contents($oldFilesName, $returData);
+                    //file_put_contents($oldFilesName, $returnData);
                 }
             }            
 
         }
-        $title = 'This is a title';
-        $body = 'This is a body';
-        $returnData = $app['pushapi']->doPush($title, $body, $users);
+	if(count($users) > 0)
+	{
+	        $title = 'This is a title';
+        	$body = 'This is a body';
+	        $returnData = $app['pushapi']->doPush($title, $body, $users);
+		file_put_contents('/tmp/aux.log', $returnData);
+	}
     }
     return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
 });

@@ -44,7 +44,7 @@ class UserProvider implements UserProviderInterface
 
     public function getAllLoggedUsernames()
     {
-        $sql = 'select username from mobile_users';
+        $sql = 'select email, username from tbl_users where email in (select username from mobile_users)';
         return $this->conn->fetchAll($sql);
     }
 
