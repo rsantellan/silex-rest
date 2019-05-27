@@ -185,6 +185,49 @@ $app->error(function (\Exception $e, Request $request, $code) use ($app) {
     return sprintf('%s -> %s', $e->getMessage(), $e->getTraceAsString());
 });
 
+$app->post('/send-user-data', function(Request $request) use ($app){
+    if (isset($_SERVER['HTTP_CLIENT_IP'])
+        || isset($_SERVER['HTTP_X_FORWARDED_FOR'])
+        || !(in_array(@$_SERVER['REMOTE_ADDR'], array('127.0.0.1', '::1')) || php_sapi_name() === 'cli-server')
+    ) {
+        header('HTTP/1.0 403 Forbidden');
+        exit('You are not allowed to access this file. Check '.basename(__FILE__).' for more information.');
+    }
+
+    $title = 'This is a title';
+    $body = 'This is a body';
+    $returnData = $app['pushapi']->doPush($title, $body, ['rsantellan']);
+    var_dump($returnData);
+
+    $response = [
+            'success' => false,
+            'error' => 'Error',
+    ];
+    //var_dump($request->getClientIp());
+    return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+});
+
+$app->post('/get-folder-data', function(Request $request) use ($app){
+    if (isset($_SERVER['HTTP_CLIENT_IP'])
+        || isset($_SERVER['HTTP_X_FORWARDED_FOR'])
+        || !(in_array(@$_SERVER['REMOTE_ADDR'], array('127.0.0.1', '::1')) || php_sapi_name() === 'cli-server')
+    ) {
+        header('HTTP/1.0 403 Forbidden');
+        exit('You are not allowed to access this file. Check '.basename(__FILE__).' for more information.');
+    }
+    $vars = json_decode($request->getContent(), true);
+    $returnData = [];
+    $response = [
+        'success' => false,
+        'error' => '',
+    ];
+    if (! empty($vars['folderdata'])) {
+        $response['success'] = true;
+        $response['users'] = $app['users']->folderHasAppUser($vars['folderdata']);
+    }
+    return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+});
+
 $app->get('/send-data/{password}', function($password) use($app){
     $response = [
             'success' => false,
@@ -259,13 +302,13 @@ $app->get('/send-data/{password}', function($password) use($app){
             }            
 
         }
-	if(count($users) > 0)
-	{
-	        $title = 'This is a title';
-        	$body = 'This is a body';
-	        $returnData = $app['pushapi']->doPush($title, $body, $users);
-		file_put_contents('/tmp/aux.log', $returnData);
-	}
+    	if(count($users) > 0)
+    	{
+    	        $title = 'This is a title';
+            	$body = 'This is a body';
+    	        $returnData = $app['pushapi']->doPush($title, $body, $users);
+    		    file_put_contents('/tmp/aux.log', $returnData);
+    	}
     }
     return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
 });

@@ -3,3 +3,4 @@
 !var/logs/.gitkeep
 /var/logs/*
 composer.phar
+.idea

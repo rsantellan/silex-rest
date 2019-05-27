@@ -67,7 +67,7 @@ $app['contableData'] = function () use ($app){
 
 $app['security.firewalls'] = array(
     'login' => [
-        'pattern' => 'login|register|oauth|send-data',
+        'pattern' => 'login|register|oauth|send-data|send-user-data|get-folder-data',
         'anonymous' => true,
     ],
     'secured' => array(

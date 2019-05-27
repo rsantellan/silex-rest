@@ -37,8 +37,13 @@ class UserProvider implements UserProviderInterface
 
     public function saveLoadedUsername($username)
     {
-        $sql = 'replace into mobile_users (username) values (?)';
-        $this->conn->executeUpdate($sql, array($username));
+        $clients = $this->loadClientByUsername($username);
+        $folderList = ",";
+        foreach($clients as $client){
+            $folderList .= $client['folder_number'].",";
+        }
+        $sql = 'replace into mobile_users (username, folderdata) values (?, ?)';
+        $this->conn->executeUpdate($sql, array($username, $folderList));
         return true;
     }
 
@@ -85,13 +90,22 @@ class UserProvider implements UserProviderInterface
                 }
             }
             return $clientList;
-            //var_dump($clientList);
-            //var_dump($data['client_id']);
-            //var_dump($data['group_id']);
         }catch(\Exception $e){
             //var_dump($e->getMessage());
         }
         return [];
-        
+    }
+
+    public function folderHasAppUser($folder)
+    {
+        $userList = [];
+        try{
+            $sql = 'select email, username from tbl_users where email in (select username from mobile_users where folderdata like ?)';
+            $stmt = $this->conn->executeQuery($sql, array('%'.$folder.'%'));
+            $userList = $stmt->fetchAll();
+        }catch(\Exception $e){
+
+        }
+        return $userList;
     }
 }

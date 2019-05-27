@@ -5,7 +5,8 @@
         "symfony/security": "~2.8|^3.0",
         "firebase/php-jwt": "^4.0",
         "doctrine/dbal": "^2.5",
-        "guzzlehttp/guzzle": "^6.3"
+        "guzzlehttp/guzzle": "^6.3",
+        "ext-json": "*"
     },
     "autoload": {
         "psr-0": { "": "src/" }
