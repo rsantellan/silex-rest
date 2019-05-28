@@ -23,7 +23,7 @@ class ContableData
 		$client = new Client();
 		$response = $client->get($url);
 		if($response){
-			return $response->getBody()->getContents();
+            return json_decode($response->getBody()->getContents());
         }
         return [];
 		/** RAW WAY**/
@@ -38,7 +38,7 @@ class ContableData
 		$client = new Client();
 		$response = $client->get($url);
 		if($response){
-			return $response->getBody()->getContents();
+			return json_decode($response->getBody()->getContents());
         }
         return [];
 		/** RAW WAY**/
