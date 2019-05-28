@@ -193,17 +193,24 @@ $app->post('/send-user-data', function(Request $request) use ($app){
         header('HTTP/1.0 403 Forbidden');
         exit('You are not allowed to access this file. Check '.basename(__FILE__).' for more information.');
     }
-
-    $title = 'This is a title';
-    $body = 'This is a body';
-    $returnData = $app['pushapi']->doPush($title, $body, ['rsantellan']);
-    var_dump($returnData);
-
     $response = [
-            'success' => false,
-            'error' => 'Error',
+        'success' => false,
+        'error' => 'Error',
     ];
-    //var_dump($request->getClientIp());
+    $vars = json_decode($request->getContent(), true);
+    if ( isset($vars['title']) && !empty($vars['title']) && isset($vars['body']) && !empty($vars['body'])  && isset($vars['users']) && !empty($vars['users'] && is_array($vars['users'])) ) {
+        $title = $vars['title'];
+        $body = $vars['body'];
+        $users = $vars['users'];
+        $returnData = $app['pushapi']->doPush($title, $body, $users);
+        if( !empty($returnData)) {
+            $data = json_decode($returnData);
+            if($data->status === 200){
+                $response['success'] = true;
+                $response['pushes'] = $data->pushes;
+            }
+        }
+    }
     return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
 });
 
@@ -216,12 +223,11 @@ $app->post('/get-folder-data', function(Request $request) use ($app){
         exit('You are not allowed to access this file. Check '.basename(__FILE__).' for more information.');
     }
     $vars = json_decode($request->getContent(), true);
-    $returnData = [];
     $response = [
         'success' => false,
         'error' => '',
     ];
-    if (! empty($vars['folderdata'])) {
+    if ( isset($vars['folderdata']) && !empty($vars['folderdata'])) {
         $response['success'] = true;
         $response['users'] = $app['users']->folderHasAppUser($vars['folderdata']);
     }

@@ -32,16 +32,19 @@ class Api
     		'body' => $body
     	];
 		$client = new Client(['base_uri' => $this->host]);
-	    var_dump($this->host);
-	    var_dump(json_encode($params));
-		$response = $client->post($this->url, [
-		    'json' => $params,
-		    'debug' => false,
-		]);
-        //var_dump($response->getBody()->getContents());
-		if($response){
-			return $response->getBody()->getContents();
+	    try {
+            $response = $client->post($this->url, [
+                'json' => $params,
+                'debug' => false,
+            ]);
+
+            if($response){
+                return $response->getBody()->getContents();
+            }
+        }catch (\Exception $e) {
+
         }
+
 		return null;
     }
 
