@@ -42,9 +42,8 @@ class Api
                 return $response->getBody()->getContents();
             }
         }catch (\Exception $e) {
-
+            throw $e;
         }
-
 		return null;
     }
 

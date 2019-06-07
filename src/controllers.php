@@ -196,13 +196,18 @@ $app->post('/send-user-data', function(Request $request) use ($app){
     $response = [
         'success' => false,
         'error' => 'Error',
+        'fullData' => null,
     ];
     $vars = json_decode($request->getContent(), true);
-    if ( isset($vars['title']) && !empty($vars['title']) && isset($vars['body']) && !empty($vars['body'])  && isset($vars['users']) && !empty($vars['users'] && is_array($vars['users'])) ) {
+    $titleIsValid = isset($vars['title']) && !empty($vars['title']);
+    $bodyIsValid = isset($vars['body']) && !empty($vars['body']);
+    $usersIsValid = isset($vars['users']) && !empty($vars['users']) && is_array($vars['users']);
+    if ($titleIsValid && $bodyIsValid && $usersIsValid) {
         $title = $vars['title'];
         $body = $vars['body'];
         $users = $vars['users'];
         $returnData = $app['pushapi']->doPush($title, $body, $users);
+        $response['fullData'] = $returnData;
         if( !empty($returnData)) {
             $data = json_decode($returnData);
             if($data->status === 200){
