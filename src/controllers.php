@@ -58,6 +58,20 @@ $app->post('/api/month-amount', function (Request $request) use ($app) {
         
         if($clientId){
             $returnData = $app['contableData']->returnPayments($clientId, $month, $year);
+            $removeClientList = [];
+            $allClientList = [];
+            $permissionData = $app['users']->getPermissionOfUser($token->getUsername(), 'monthAmount');
+            foreach($returnData->data as $clientId => $clientData)
+            {
+                $allClientList[] = $clientId;
+                if (! in_array($clientId, $permissionData)) {
+                    $removeClientList[] = $clientId;
+                }
+            }
+            foreach ($removeClientList as $clientId)
+            {
+                unset($returnData->data->$clientId);
+            }
         }
     }
     return $app->json($returnData, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
@@ -97,9 +111,10 @@ $app->post('/api/current-account-data', function (Request $request) use ($app) {
                     //'token' => $app['security.jwt.encoder']->encode(['name' => $user->getUsername()]),
                 ];
         $found = false;
+        $permissionData = $app['users']->getPermissionOfUser($token->getUsername(), 'accounts');
         if(count($response['clients']) > 0){
             foreach($response['clients'] as $client){
-                if($client['folder_number'] == $folder){
+                if ($client['folder_number'] == $folder && in_array($client['id'], $permissionData)) {
                     $found = true;
                 }
             }
