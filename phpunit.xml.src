@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="./vendor/autoload.php" verbose="true" colors="true">
+    <testsuites>
+        <testsuite name="Simple test">
+            <file>tests/NewsTest.php</file>
+            <file>tests/MonthAmountTest.php</file>
+            <file>tests/CurrentAccountTest.php</file>
+        </testsuite>
+    </testsuites>
+    <php>
+        <env name="base.url" value="http://localhost:1234"/>
+        <env name="base.url.path" value="/index.php"/>
+        <env name="user.username" value="admin" />
+        <env name="user.password" value="admin" />
+    </php>
+
+</phpunit>
