@@ -97,6 +97,7 @@ $app->post('/api/current-account-data', function (Request $request) use ($app) {
         $folder = $vars['folder'];
     }
     $returnData = [];
+    $forbidden = false;
     if(empty($year) || empty($month)  || empty($folder)){
         $response = [
                     'success' => false,
@@ -114,8 +115,12 @@ $app->post('/api/current-account-data', function (Request $request) use ($app) {
         $permissionData = $app['users']->getPermissionOfUser($token->getUsername(), 'accounts');
         if(count($response['clients']) > 0){
             foreach($response['clients'] as $client){
-                if ($client['folder_number'] == $folder && in_array($client['id'], $permissionData)) {
-                    $found = true;
+                if ($client['folder_number'] == $folder){
+                    if(in_array($client['id'], $permissionData)) {
+                        $found = true;
+                    } else {
+                        $forbidden = true;
+                    }
                 }
             }
         }
@@ -129,7 +134,18 @@ $app->post('/api/current-account-data', function (Request $request) use ($app) {
             $response['success'] = false;
         }
     }
-    return $app->json($returnData, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+    $responseCode = null;
+    if ($forbidden) {
+        $responseCode = Response::HTTP_FORBIDDEN;
+    } else {
+        if ($response['success'] == true) {
+            $responseCode = Response::HTTP_OK;
+        }
+    }
+    if (empty($responseCode)) {
+        $responseCode = Response::HTTP_BAD_REQUEST;
+    }
+    return $app->json($returnData, $responseCode);
 })
 ->bind('current-account-data')
 ;
