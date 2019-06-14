@@ -96,6 +96,17 @@ class UserProvider implements UserProviderInterface
         return [];
     }
 
+    public function getPermissionOfUser($email, $section)
+    {
+        $sql = "select data from AuthAssignment where itemname = ? and userid in (select id from tbl_users where email = ?) limit 1";
+        $stmt = $this->conn->executeQuery($sql, [$section, $email]);
+        $data = $stmt->fetch();
+        if (!empty($data['data'])) {
+            return unserialize($data['data']);
+        }
+        return [];
+    }
+
     public function folderHasAppUser($folder)
     {
         $userList = [];

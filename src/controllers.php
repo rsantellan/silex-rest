@@ -58,6 +58,20 @@ $app->post('/api/month-amount', function (Request $request) use ($app) {
         
         if($clientId){
             $returnData = $app['contableData']->returnPayments($clientId, $month, $year);
+            $removeClientList = [];
+            $allClientList = [];
+            $permissionData = $app['users']->getPermissionOfUser($token->getUsername(), 'monthAmount');
+            foreach($returnData->data as $clientId => $clientData)
+            {
+                $allClientList[] = $clientId;
+                if (! in_array($clientId, $permissionData)) {
+                    $removeClientList[] = $clientId;
+                }
+            }
+            foreach ($removeClientList as $clientId)
+            {
+                unset($returnData->data->$clientId);
+            }
         }
     }
     return $app->json($returnData, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
@@ -83,6 +97,7 @@ $app->post('/api/current-account-data', function (Request $request) use ($app) {
         $folder = $vars['folder'];
     }
     $returnData = [];
+    $forbidden = false;
     if(empty($year) || empty($month)  || empty($folder)){
         $response = [
                     'success' => false,
@@ -97,10 +112,15 @@ $app->post('/api/current-account-data', function (Request $request) use ($app) {
                     //'token' => $app['security.jwt.encoder']->encode(['name' => $user->getUsername()]),
                 ];
         $found = false;
+        $permissionData = $app['users']->getPermissionOfUser($token->getUsername(), 'accounts');
         if(count($response['clients']) > 0){
             foreach($response['clients'] as $client){
-                if($client['folder_number'] == $folder){
-                    $found = true;
+                if ($client['folder_number'] == $folder){
+                    if(in_array($client['id'], $permissionData)) {
+                        $found = true;
+                    } else {
+                        $forbidden = true;
+                    }
                 }
             }
         }
@@ -114,7 +134,18 @@ $app->post('/api/current-account-data', function (Request $request) use ($app) {
             $response['success'] = false;
         }
     }
-    return $app->json($returnData, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+    $responseCode = null;
+    if ($forbidden) {
+        $responseCode = Response::HTTP_FORBIDDEN;
+    } else {
+        if ($response['success'] == true) {
+            $responseCode = Response::HTTP_OK;
+        }
+    }
+    if (empty($responseCode)) {
+        $responseCode = Response::HTTP_BAD_REQUEST;
+    }
+    return $app->json($returnData, $responseCode);
 })
 ->bind('current-account-data')
 ;
@@ -196,13 +227,18 @@ $app->post('/send-user-data', function(Request $request) use ($app){
     $response = [
         'success' => false,
         'error' => 'Error',
+        'fullData' => null,
     ];
     $vars = json_decode($request->getContent(), true);
-    if ( isset($vars['title']) && !empty($vars['title']) && isset($vars['body']) && !empty($vars['body'])  && isset($vars['users']) && !empty($vars['users'] && is_array($vars['users'])) ) {
+    $titleIsValid = isset($vars['title']) && !empty($vars['title']);
+    $bodyIsValid = isset($vars['body']) && !empty($vars['body']);
+    $usersIsValid = isset($vars['users']) && !empty($vars['users']) && is_array($vars['users']);
+    if ($titleIsValid && $bodyIsValid && $usersIsValid) {
         $title = $vars['title'];
         $body = $vars['body'];
         $users = $vars['users'];
         $returnData = $app['pushapi']->doPush($title, $body, $users);
+        $response['fullData'] = $returnData;
         if( !empty($returnData)) {
             $data = json_decode($returnData);
             if($data->status === 200){
