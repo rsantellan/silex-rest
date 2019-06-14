@@ -5,3 +5,4 @@
 composer.phar
 .idea
 test-test.txt
+phpunit.xml

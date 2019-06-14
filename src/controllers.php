@@ -158,7 +158,7 @@ $app->get('/api/news', function(Request $request) use ($app){
             ];
 
     $returnData = [
-        'sucess' => true,
+        'success' => true,
         'news' => $app['news']->retrieveLastNews(),
     ];
     return $app->json($returnData, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
