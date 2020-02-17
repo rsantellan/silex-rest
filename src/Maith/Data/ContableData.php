@@ -9,22 +9,33 @@ class ContableData
     private $urlPayments;
     private $urlCcte;
 
+    /**
+     * ContableData constructor.
+     * @param $urlPayments
+     * @param $urlCcte
+     */
     public function __construct($urlPayments, $urlCcte)
     {
         $this->urlPayments = $urlPayments;
         $this->urlCcte = $urlCcte;
     }
 
+    /**
+     * @param $clientId
+     * @param $month
+     * @param $year
+     * @return array|mixed
+     */
     public function returnPayments($clientId, $month, $year)
     {
         $url = sprintf($this->urlPayments, $clientId, $month, $year);
         // This is for testing
-        //return json_decode($this->testPayment());
+        //return $this->formatPayment($month, json_decode($this->testPayment(), true));
         /** Object Way **/
         $client = new Client();
         $response = $client->get($url);
         if ($response) {
-            return json_decode($response->getBody()->getContents());
+            return $this->formatPayment($month, json_decode($response->getBody()->getContents(), true));
         }
         return [];
         /** RAW WAY**/
@@ -32,6 +43,54 @@ class ContableData
         // $returnData = json_decode($string);
     }
 
+    private function formatPayment($month, $response)
+    {
+        $returnData = [];
+        $months = [
+            1=>"Enero",
+            2=>"Febrero",
+            3=>"Marzo",
+            4=>"Abril",
+            5=>"Mayo",
+            6=>"Junio",
+            7=>"Julio",
+            8=>"Agosto",
+            9=>"Septiembre",
+            10=>"Octubre",
+            11=>"Noviembre",
+            12=>"Diciembre"
+        ];
+        if (isset($response['isvalid'])) {
+            $returnData['isvalid'] = $response['isvalid'];
+        } else {
+            $returnData['isvalid'] = false;
+        }
+        if ($returnData['isvalid']) {
+            $returnData['data'] = [];
+            foreach ($response['data'] as $clientId => $clientData) {
+                $clientReturn = ['calendar' => [], 'client' => []];
+                if (isset($clientData['calendar'])) {
+                    foreach ($clientData['calendar'] as $calendarId => $calendarData) {
+                        $calendarData['day'] = $calendarData['month'];
+                        $calendarData['month'] = sprintf('%s de %s', $calendarData['day'], $months[$month]);
+                        $clientReturn['calendar'][$calendarId] = $calendarData;
+                    }
+                }
+                if (isset($clientData['client'])) {
+                    $clientReturn['client'] = $clientData['client'];
+                }
+                $returnData['data'][$clientId] = $clientReturn;
+            }
+        }
+        return $returnData;
+    }
+
+    /**
+     * @param $folder
+     * @param $month
+     * @param $year
+     * @return array
+     */
     public function returnCcte($folder, $month, $year)
     {
         $url = sprintf($this->urlCcte, $folder, $month, $year);
@@ -49,6 +108,10 @@ class ContableData
         $returnData = json_decode($string);
     }
 
+    /**
+     * @param $response
+     * @return array
+     */
     private function formatCcteResponse($response)
     {
         $returnData = [];
@@ -92,7 +155,7 @@ class ContableData
                             }
                         }
                         if (isset ($clientData['SubtotalCliente'])) {
-                            $returnData['data']['Clientes'][$clientName]['SubtotalCliente']['SaldoPesos'] = $clientData['SubtotalCliente']['SaldoPesos'];
+                            $returnData['data']['Clientes'][$clientName]['SubtotalCliente']['SaldoPesos'] = round($clientData['SubtotalCliente']['SaldoPesos']);
                         }
                     }
                 }
@@ -107,6 +170,9 @@ class ContableData
         return $returnData;
     }
 
+    /**
+     * @return string
+     */
     private function testPayment()
     {
         return '{
@@ -328,6 +394,9 @@ class ContableData
 ';
     }
 
+    /**
+     * @return string
+     */
     private function testCcte()
     {
         return '{
