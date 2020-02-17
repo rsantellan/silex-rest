@@ -45,6 +45,7 @@ class ContableData
 
     private function formatPayment($month, $response)
     {
+        $month = (int) $month;
         $returnData = [];
         $months = [
             1=>"Enero",
