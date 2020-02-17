@@ -41,7 +41,7 @@ class ContableData
         $client = new Client();
         $response = $client->get($url);
         if ($response) {
-            return $this->formatCcteResponse(json_decode($response->getBody()->getContents()));
+            return $this->formatCcteResponse(json_decode($response->getBody()->getContents(), true));
         }
         return [];
         /** RAW WAY**/
