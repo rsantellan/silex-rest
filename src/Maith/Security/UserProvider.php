@@ -74,11 +74,20 @@ class UserProvider implements UserProviderInterface
             $stmt = $this->conn->executeQuery($sql, array($email));
             $data = $stmt->fetch();
             $clientList = [];
+            $monthAmountPermissions = $this->getPermissionOfUser($data['email'], 'monthAmount');
+            $accountsPermissions = $this->getPermissionOfUser($data['email'], 'accounts');
             if(!empty($data['group_id']))
             {
                 $sqlClientId = 'select id, folder_number, social_reason from ec_clients where id_group = ?';
                 $stmt = $this->clientConn->executeQuery($sqlClientId, array($data['group_id']));
-                $clientList = $stmt->fetchAll();
+                foreach( $stmt->fetchAll() as $client) {
+                    $services = [
+                        'month-amount' => in_array($client['id'], $monthAmountPermissions),
+                        'current-account-data' => in_array($client['id'], $accountsPermissions),
+                    ];
+                    $client['permissions'] = $services;
+                    $clientList[] = $client;
+                }
             }
             if(!empty($data['client_id']))
             {
@@ -86,6 +95,11 @@ class UserProvider implements UserProviderInterface
                 $stmt = $this->clientConn->executeQuery($sqlClientId, array($data['client_id']));
                 $client = $stmt->fetch();
                 if(!empty($client)){
+                    $services = [
+                        'month-amount' => in_array($client['id'], $monthAmountPermissions),
+                        'current-account-data' => in_array($client['id'], $accountsPermissions),
+                    ];
+                    $client['permissions'] = $services;
                     $clientList[] = $client;
                 }
             }

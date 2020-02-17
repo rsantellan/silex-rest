@@ -31,14 +31,16 @@ class Api
     		'title' => $title,
     		'body' => $body
     	];
+	$filename = '/tmp/push'.time();
+	file_put_contents($filename, json_encode($params));
 		$client = new Client(['base_uri' => $this->host]);
 	    try {
             $response = $client->post($this->url, [
                 'json' => $params,
                 'debug' => false,
             ]);
-
             if($response){
+		file_put_contents($filename, json_encode($response->getBody()->getContents()));
                 return $response->getBody()->getContents();
             }
         }catch (\Exception $e) {
