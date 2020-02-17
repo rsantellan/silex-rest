@@ -77,7 +77,6 @@ $app->post('/api/month-amount', function (Request $request) use ($app) {
 
 $app->post('/api/current-account-data', function (Request $request) use ($app) {
     $token = $app['security.token_storage']->getToken();
-    //var_dump($token);
     //$folder, $year, $month
     $year = null;
     $month = null;

@@ -6,57 +6,110 @@ use GuzzleHttp\Client;
 
 class ContableData
 {
-	private $urlPayments;
-	private $urlCcte;
+    private $urlPayments;
+    private $urlCcte;
 
-	public function __construct($urlPayments, $urlCcte)
-	{
-		$this->urlPayments = $urlPayments;
-		$this->urlCcte = $urlCcte;
-	}
+    public function __construct($urlPayments, $urlCcte)
+    {
+        $this->urlPayments = $urlPayments;
+        $this->urlCcte = $urlCcte;
+    }
 
-	public function returnPayments($clientId, $month, $year)
-	{
-		$url = sprintf($this->urlPayments, $clientId, $month, $year);
-		// This is for testing
-		//return json_decode($this->testPayment());
-		/** Object Way **/
-		$client = new Client();
-		$response = $client->get($url);
-		if($response){
+    public function returnPayments($clientId, $month, $year)
+    {
+        $url = sprintf($this->urlPayments, $clientId, $month, $year);
+        // This is for testing
+        //return json_decode($this->testPayment());
+        /** Object Way **/
+        $client = new Client();
+        $response = $client->get($url);
+        if ($response) {
             return json_decode($response->getBody()->getContents());
         }
         return [];
-		/** RAW WAY**/
+        /** RAW WAY**/
         // $string = file_get_contents($url);
         // $returnData = json_decode($string);
-	}
+    }
 
-	public function returnCcte($folder, $month, $year)
-	{
-		$url = sprintf($this->urlCcte, $folder, $month, $year);
-		/** Test way **/
-		//return json_decode($this->testCcte());
-		/** Object Way **/
-		$client = new Client();
-		$response = $client->get($url);
-		if($response){
-			return json_decode($response->getBody()->getContents());
+    public function returnCcte($folder, $month, $year)
+    {
+        $url = sprintf($this->urlCcte, $folder, $month, $year);
+        /** Test way **/
+        //return $this->formatCcteResponse(json_decode($this->testCcte(), true));
+        /** Object Way **/
+        $client = new Client();
+        $response = $client->get($url);
+        if ($response) {
+            return $this->formatCcteResponse(json_decode($response->getBody()->getContents()));
         }
         return [];
-		/** RAW WAY**/
+        /** RAW WAY**/
         $string = file_get_contents($url);
         $returnData = json_decode($string);
-	}
+    }
 
-	private function testCcte()
-	{
-		return '{"isvalid":true,"data":{"Clientes":{"0103003 - DE LEON SAGASTUME RICARDO":{"Cuentas":{"01- Honorarios":{"Movimientos":[],"SaldoInicial":{"SaldoPesos":0,"SaldoDolares":0},"SaldoFinal":{"SaldoPesos":0,"SaldoDolares":0}},"02 - Impuestos y Gastos":{"Movimientos":[],"SaldoInicial":{"SaldoPesos":0,"SaldoDolares":0},"SaldoFinal":{"SaldoPesos":0,"SaldoDolares":0}},"04 - Pendientes":{"Movimientos":[{"FECHA":"Sep 12 2018 12:00:00:000AM","Documento":"Pago de Terceros 000000051716 - Pago a Terceros : VARIOS por CLIENTE - Inefop  -P Rodr - Inefop  -P Rodr","SaldoPesos":10000,"SaldoDolares":0,"TipoCliente":"De Leon Ricardo","Cliente":"0103003 - DE LEON SAGASTUME RICARDO","UnidadNegocios":"Maldonado","TipoDoc":"04 - Pendientes","AcumuladoPesos":50000,"AcumuladoDolares":0},{"FECHA":"Sep 21 2018 12:00:00:000AM","Documento":"Pago de Terceros 000000051825 - Pago a Terceros : VARIOS por CLIENTE - PR Haro - Inefop - PR Haro - Inefop","SaldoPesos":10000,"SaldoDolares":0,"TipoCliente":"De Leon Ricardo","Cliente":"0103003 - DE LEON SAGASTUME RICARDO","UnidadNegocios":"Maldonado","TipoDoc":"04 - Pendientes","AcumuladoPesos":60000,"AcumuladoDolares":0}],"SaldoInicial":{"SaldoPesos":40000,"SaldoDolares":0},"SaldoFinal":{"SaldoPesos":60000,"SaldoDolares":0}}},"SubtotalCliente":{"SaldoPesos":60000,"SaldoDolares":0}}},"TotalGrupo":{"SaldoPesos":60000,"SaldoDolares":0},"Grupo":"Totales"}}';
-	}
+    private function formatCcteResponse($response)
+    {
+        $returnData = [];
+        if (isset($response['isvalid'])) {
+            $returnData['isvalid'] = $response['isvalid'];
+        } else {
+            $returnData['isvalid'] = false;
+        }
+        if ($returnData['isvalid']) {
+            $returnData['data'] = [];
+            if (isset ($response['data'])) {
+                if (isset($response['data']['Clientes'])) {
+                    $returnData['data'] = ['Clientes' => [], 'Grupo' => [], 'TotalGrupo' => [] ] ;
+                    foreach ($response['data']['Clientes'] as $clientName => $clientData) {
+                        $returnData['data']['Clientes'][$clientName] = ['Cuentas' => [], 'SubtotalCliente' => []];
+                        if (isset ($clientData['Cuentas'])) {
+                            foreach ($clientData['Cuentas'] as $cuentaType => $cuentaData) {
+                                $returnData['data']['Clientes'][$clientName]['Cuentas'][$cuentaType] = ['Movimientos' => [], 'SaldoInicial' => [], 'SaldoFinal' => []];
+                                if (isset ($clientData['Cuentas'][$cuentaType]['SaldoInicial'])) {
+                                    $returnData['data']['Clientes'][$clientName]['Cuentas'][$cuentaType]['SaldoInicial']['SaldoPesos'] = round($clientData['Cuentas'][$cuentaType]['SaldoInicial']['SaldoPesos']);
+                                }
+                                if (isset ($clientData['Cuentas'][$cuentaType]['SaldoFinal'])) {
+                                    $returnData['data']['Clientes'][$clientName]['Cuentas'][$cuentaType]['SaldoFinal']['SaldoPesos'] = round($clientData['Cuentas'][$cuentaType]['SaldoFinal']['SaldoPesos']);
+                                }
+                                if (isset ($clientData['Cuentas'][$cuentaType]['Movimientos'])) {
+                                    foreach ($clientData['Cuentas'][$cuentaType]['Movimientos'] as $movimientoData) {
+                                        $fecha = \DateTime::createFromFormat('M j Y', substr($movimientoData['FECHA'],0,11));
+                                        $movimiento = [
+                                            'AcumuladoPesos' => round($movimientoData['AcumuladoPesos']),
+                                            'Cliente' => $movimientoData['Cliente'],
+                                            'Documento' => $movimientoData['Documento'],
+                                            'FECHA' => $fecha->format('d/m/y'),
+                                            'SaldoPesos' => round($movimientoData['SaldoPesos']),
+                                            'TipoCliente' => $movimientoData['TipoCliente'],
+                                            'TipoDoc' => $movimientoData['TipoDoc'],
+                                            'UnidadNegocios' => $movimientoData['UnidadNegocios'],
+                                        ];
+                                        $returnData['data']['Clientes'][$clientName]['Cuentas'][$cuentaType]['Movimientos'][] = $movimiento;
+                                    }
+                                }
+                            }
+                        }
+                        if (isset ($clientData['SubtotalCliente'])) {
+                            $returnData['data']['Clientes'][$clientName]['SubtotalCliente']['SaldoPesos'] = $clientData['SubtotalCliente']['SaldoPesos'];
+                        }
+                    }
+                }
+                if (isset($response['data']['Grupo'])) {
+                    $returnData['data']['Grupo'] = $response['data']['Grupo'];
+                }
+                if (isset($response['data']['TotalGrupo'])) {
+                    $returnData['data']['TotalGrupo']['SaldoPesos'] = round($response['data']['TotalGrupo']['SaldoPesos']);
+                }
+            }
+        }
+        return $returnData;
+    }
 
-	private function testPayment()
-	{
-		return '{
+    private function testPayment()
+    {
+        return '{
     "data": {
         "216": {
             "calendar": {
@@ -273,5 +326,161 @@ class ContableData
     "isvalid": true
 }
 ';
-	}
+    }
+
+    private function testCcte()
+    {
+        return '{
+    "data": {
+        "Clientes": {
+            "0101883 - ORGANICO.UY  S.R.L.": {
+                "Cuentas": {
+                    "02 - Impuestos y Gastos": {
+                        "Movimientos": [
+                            {
+                                "AcumuladoDolares": 309.34,
+                                "AcumuladoPesos": -2498.1300006001,
+                                "Cliente": "0101883 - ORGANICO.UY  S.R.L.",
+                                "Documento": "Pago de Terceros 000000054938 - Pago a Terceros : VARIOS por CLIENTE - Santander Cuota 18 - Santander Cuota 18",
+                                "FECHA": "Jul  4 2019 12:00:00:000AM",
+                                "SaldoDolares": 782.27,
+                                "SaldoPesos": 0,
+                                "TipoCliente": "De Leon Ricardo",
+                                "TipoDoc": "02 - Impuestos y Gastos",
+                                "UnidadNegocios": "Maldonado"
+                            },
+                            {
+                                "AcumuladoDolares": 309.34,
+                                "AcumuladoPesos": -6.0012553149136e-07,
+                                "Cliente": "0101883 - ORGANICO.UY  S.R.L.",
+                                "Documento": "Pago de Terceros 000000055149 - Pago a Terceros : VARIOS por CLIENTE - cbio ps a dls - cbio ps a dls",
+                                "FECHA": "Jul  4 2019 12:00:00:000AM",
+                                "SaldoDolares": 0,
+                                "SaldoPesos": 2498.13,
+                                "TipoCliente": "De Leon Ricardo",
+                                "TipoDoc": "02 - Impuestos y Gastos",
+                                "UnidadNegocios": "Maldonado"
+                            },
+                            {
+                                "AcumuladoDolares": 238,
+                                "AcumuladoPesos": -6.0012553149136e-07,
+                                "Cliente": "0101883 - ORGANICO.UY  S.R.L.",
+                                "Documento": "Recibos de Cobranza 000200530221 - R.G.: 000500011041 - Obs.: cbio ps a dls - R.G.: 000500011041 - Obs.: cbio ps a dls",
+                                "FECHA": "Jul  4 2019 12:00:00:000AM",
+                                "SaldoDolares": -71.34,
+                                "SaldoPesos": 0,
+                                "TipoCliente": "De Leon Ricardo",
+                                "TipoDoc": "02 - Impuestos y Gastos",
+                                "UnidadNegocios": "Maldonado"
+                            },
+                            {
+                                "AcumuladoDolares": 238,
+                                "AcumuladoPesos": -16296.0000006,
+                                "Cliente": "0101883 - ORGANICO.UY  S.R.L.",
+                                "Documento": "Recibos de Cobranza 000200530217 - R.G.: 000500011037 - Obs.: transf. brou - R.G.: 000500011037 - Obs.: transf. brou",
+                                "FECHA": "Jul 24 2019 12:00:00:000AM",
+                                "SaldoDolares": 0,
+                                "SaldoPesos": -16296,
+                                "TipoCliente": "De Leon Ricardo",
+                                "TipoDoc": "02 - Impuestos y Gastos",
+                                "UnidadNegocios": "Maldonado"
+                            },
+                            {
+                                "AcumuladoDolares": 238,
+                                "AcumuladoPesos": -6.0012462199666e-07,
+                                "Cliente": "0101883 - ORGANICO.UY  S.R.L.",
+                                "Documento": "Pago de Terceros 000000055147 - Pago a Terceros : VARIOS por CLIENTE - GSoft - GSoft",
+                                "FECHA": "Jul 24 2019 12:00:00:000AM",
+                                "SaldoDolares": 0,
+                                "SaldoPesos": 16296,
+                                "TipoCliente": "De Leon Ricardo",
+                                "TipoDoc": "02 - Impuestos y Gastos",
+                                "UnidadNegocios": "Maldonado"
+                            },
+                            {
+                                "AcumuladoDolares": 238,
+                                "AcumuladoPesos": -5900.0000006001,
+                                "Cliente": "0101883 - ORGANICO.UY  S.R.L.",
+                                "Documento": "Recibos de Cobranza 000200530220 - R.G.: 000500011040 - Obs.: transf. brou - R.G.: 000500011040 - Obs.: transf. brou",
+                                "FECHA": "Jul 24 2019 12:00:00:000AM",
+                                "SaldoDolares": 0,
+                                "SaldoPesos": -5900,
+                                "TipoCliente": "De Leon Ricardo",
+                                "TipoDoc": "02 - Impuestos y Gastos",
+                                "UnidadNegocios": "Maldonado"
+                            },
+                            {
+                                "AcumuladoDolares": 238,
+                                "AcumuladoPesos": -6.0012462199666e-07,
+                                "Cliente": "0101883 - ORGANICO.UY  S.R.L.",
+                                "Documento": "Pago de Terceros 000000055148 - Pago a Terceros : VARIOS por CLIENTE - New Age Data - New Age Data",
+                                "FECHA": "Jul 24 2019 12:00:00:000AM",
+                                "SaldoDolares": 0,
+                                "SaldoPesos": 5900,
+                                "TipoCliente": "De Leon Ricardo",
+                                "TipoDoc": "02 - Impuestos y Gastos",
+                                "UnidadNegocios": "Maldonado"
+                            },
+                            {
+                                "AcumuladoDolares": -762,
+                                "AcumuladoPesos": -6.0012462199666e-07,
+                                "Cliente": "0101883 - ORGANICO.UY  S.R.L.",
+                                "Documento": "Recibos de Cobranza 000200530317 - R.G.: 000500011115 - Obs.: deposito 23 - R.G.: 000500011115 - Obs.: deposito 23",
+                                "FECHA": "Aug 12 2019 12:00:00:000AM",
+                                "SaldoDolares": -1000,
+                                "SaldoPesos": 0,
+                                "TipoCliente": "De Leon Ricardo",
+                                "TipoDoc": "02 - Impuestos y Gastos",
+                                "UnidadNegocios": "Maldonado"
+                            },
+                            {
+                                "AcumuladoDolares": -762,
+                                "AcumuladoPesos": 2146.9999993999,
+                                "Cliente": "0101883 - ORGANICO.UY  S.R.L.",
+                                "Documento": "Pago de Terceros 000000055472 - Pago a Terceros : DGI -  - ",
+                                "FECHA": "Aug 26 2019 12:00:00:000AM",
+                                "SaldoDolares": 0,
+                                "SaldoPesos": 2147,
+                                "TipoCliente": "De Leon Ricardo",
+                                "TipoDoc": "02 - Impuestos y Gastos",
+                                "UnidadNegocios": "Maldonado"
+                            }
+                        ],
+                        "SaldoFinal": {
+                            "SaldoDolares": -762,
+                            "SaldoPesos": 2146.9999993999
+                        },
+                        "SaldoInicial": {
+                            "SaldoDolares": -472.93,
+                            "SaldoPesos": -2498.1300006001
+                        }
+                    },
+                    "04 - Pendientes": {
+                        "Movimientos": [],
+                        "SaldoFinal": {
+                            "SaldoDolares": 0,
+                            "SaldoPesos": 0
+                        },
+                        "SaldoInicial": {
+                            "SaldoDolares": 0,
+                            "SaldoPesos": 0
+                        }
+                    }
+                },
+                "SubtotalCliente": {
+                    "SaldoDolares": -762,
+                    "SaldoPesos": 2146.9999993999
+                }
+            }
+        },
+        "Grupo": "Totales",
+        "TotalGrupo": {
+            "SaldoDolares": -762,
+            "SaldoPesos": 2146.9999993999
+        }
+    },
+    "isvalid": true
+}
+';
+    }
 }
