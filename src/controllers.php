@@ -57,17 +57,19 @@ $app->post('/api/month-amount', function (Request $request) use ($app) {
 
         if ($clientId) {
             $returnData = $app['contableData']->returnPayments($clientId, $month, $year);
-            $removeClientList = [];
-            $allClientList = [];
-            $permissionData = $app['users']->getPermissionOfUser($token->getUsername(), 'monthAmount');
-            foreach ($returnData['data'] as $clientId => $clientData) {
-                $allClientList[] = $clientId;
-                if (!in_array($clientId, $permissionData)) {
-                    $removeClientList[] = $clientId;
+            if ($returnData['isvalid']) {
+                $removeClientList = [];
+                $allClientList = [];
+                $permissionData = $app['users']->getPermissionOfUser($token->getUsername(), 'monthAmount');
+                foreach ($returnData['data'] as $clientId => $clientData) {
+                    $allClientList[] = $clientId;
+                    if (!in_array($clientId, $permissionData)) {
+                        $removeClientList[] = $clientId;
+                    }
                 }
-            }
-            foreach ($removeClientList as $clientId) {
-                unset($returnData['data'][$clientId]);
+                foreach ($removeClientList as $clientId) {
+                    unset($returnData['data'][$clientId]);
+                }
             }
         }
     }

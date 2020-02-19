@@ -17,3 +17,4 @@ const PASSWORD_PUSH_CODE = 'key_push_code';
 const URL_CONTABLE_PAYMENT = 'URL_CONTABLE_PAYMENT';
 const URL_CONTABLE_CCTE = 'URL_CONTABLE_CCTE';
 const SAVE_DATA_FILES = 'SAVE_DATA_FILES';
+const JWT_SECRET_KEY = 'default_secret_key';

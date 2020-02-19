@@ -18,7 +18,7 @@ class SecurityJWTServiceProvider implements ServiceProviderInterface
     {
         $app['security.jwt'] = array_replace_recursive([
             'secret_key' => 'default_secret_key',
-            'life_time' => 31536000,
+            'life_time' => 86400,
             'algorithm'  => ['HS256'],
             'options' => [
                 'username_claim' => 'name',
@@ -26,7 +26,6 @@ class SecurityJWTServiceProvider implements ServiceProviderInterface
                 'token_prefix' => null,
             ]
         ], $app['security.jwt']);
-
         $app['security.jwt.encoder'] = function() use ($app) {
             return new JWTEncoder($app['security.jwt']['secret_key'], $app['security.jwt']['life_time'], $app['security.jwt']['algorithm']);
         };

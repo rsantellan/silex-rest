@@ -81,11 +81,11 @@ class JWTListener implements ListenerInterface {
                 $this->securityContext->setToken($authToken);
 
             } catch (HttpEncodingException $e) {
-                var_dump($e->getMessage());
+                //var_dump($e->getMessage());
             } catch (\UnexpectedValueException $e) {
-                var_dump($e->getMessage());
+                //var_dump($e->getMessage());
             } catch(\Exception $e){
-                var_dump($e->getMessage());
+                //var_dump($e->getMessage());
             }
         }
     }
