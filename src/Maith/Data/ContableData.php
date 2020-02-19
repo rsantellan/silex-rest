@@ -147,7 +147,7 @@ class ContableData
                                             'Cliente' => $movimientoData['Cliente'],
                                             'Documento' => $movimientoData['Documento'],
                                             'FECHA' => $fecha->format('d/m/y'),
-                                            'SaldoPesos' => round($movimientoData['SaldoPesos']),
+                                            'SaldoPesos' => number_format($movimientoData['SaldoPesos'], 0, ',', '.'),
                                             'TipoCliente' => $movimientoData['TipoCliente'],
                                             'TipoDoc' => $movimientoData['TipoDoc'],
                                             'UnidadNegocios' => $movimientoData['UnidadNegocios'],
@@ -158,7 +158,7 @@ class ContableData
                             }
                         }
                         if (isset ($clientData['SubtotalCliente'])) {
-                            $returnData['data']['Clientes'][$clientName]['SubtotalCliente']['SaldoPesos'] = round($clientData['SubtotalCliente']['SaldoPesos']);
+                            $returnData['data']['Clientes'][$clientName]['SubtotalCliente']['SaldoPesos'] = number_format($clientData['SubtotalCliente']['SaldoPesos'], 0, ',', '.');
                         }
                     }
                 }
@@ -166,7 +166,7 @@ class ContableData
                     $returnData['data']['Grupo'] = $response['data']['Grupo'];
                 }
                 if (isset($response['data']['TotalGrupo'])) {
-                    $returnData['data']['TotalGrupo']['SaldoPesos'] = round($response['data']['TotalGrupo']['SaldoPesos']);
+                    $returnData['data']['TotalGrupo']['SaldoPesos'] = number_format($response['data']['TotalGrupo']['SaldoPesos'], 0, ',', '.');
                 }
             }
         }
