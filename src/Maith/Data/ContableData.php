@@ -37,7 +37,7 @@ class ContableData
         if ($response) {
             return $this->formatPayment($month, json_decode($response->getBody()->getContents(), true));
         }
-        return [];
+        return ['data' => []];
         /** RAW WAY**/
         // $string = file_get_contents($url);
         // $returnData = json_decode($string);
@@ -73,7 +73,9 @@ class ContableData
                 if (isset($clientData['calendar'])) {
                     foreach ($clientData['calendar'] as $calendarId => $calendarData) {
                         $calendarData['day'] = $calendarData['month'];
-                        $calendarData['month'] = sprintf('%s de %s', $calendarData['day'], $months[$month]);
+                        if ($calendarData['day']) {
+							$calendarData['month'] = sprintf('%s de %s', $calendarData['day'], $months[$month]);
+                        }
                         $clientReturn['calendar'][$calendarId] = $calendarData;
                     }
                 }
