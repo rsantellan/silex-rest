@@ -134,10 +134,10 @@ class ContableData
                             foreach ($clientData['Cuentas'] as $cuentaType => $cuentaData) {
                                 $returnData['data']['Clientes'][$clientName]['Cuentas'][$cuentaType] = ['Movimientos' => [], 'SaldoInicial' => [], 'SaldoFinal' => []];
                                 if (isset ($clientData['Cuentas'][$cuentaType]['SaldoInicial'])) {
-                                    $returnData['data']['Clientes'][$clientName]['Cuentas'][$cuentaType]['SaldoInicial']['SaldoPesos'] = round($clientData['Cuentas'][$cuentaType]['SaldoInicial']['SaldoPesos']);
+                                    $returnData['data']['Clientes'][$clientName]['Cuentas'][$cuentaType]['SaldoInicial']['SaldoPesos'] = number_format($clientData['Cuentas'][$cuentaType]['SaldoInicial']['SaldoPesos'], 0, ',', '.');
                                 }
                                 if (isset ($clientData['Cuentas'][$cuentaType]['SaldoFinal'])) {
-                                    $returnData['data']['Clientes'][$clientName]['Cuentas'][$cuentaType]['SaldoFinal']['SaldoPesos'] = round($clientData['Cuentas'][$cuentaType]['SaldoFinal']['SaldoPesos']);
+                                    $returnData['data']['Clientes'][$clientName]['Cuentas'][$cuentaType]['SaldoFinal']['SaldoPesos'] = number_format($clientData['Cuentas'][$cuentaType]['SaldoFinal']['SaldoPesos'], 0, ',', '.');
                                 }
                                 if (isset ($clientData['Cuentas'][$cuentaType]['Movimientos'])) {
                                     foreach ($clientData['Cuentas'][$cuentaType]['Movimientos'] as $movimientoData) {
