@@ -76,6 +76,17 @@ class ContableData
                         if ($calendarData['day']) {
 							$calendarData['month'] = sprintf('%s de %s', $calendarData['day'], $months[$month]);
                         }
+                        $payments = [];
+                        foreach ($calendarData['payments'] as $payment) {
+                            $taxes = [];
+                            foreach ($payment['taxes'] as $tax) {
+                                $tax['amount'] = number_format($tax['amount'], 0, ',', '.');
+                                $taxes[] = $tax;
+                            }
+                            $payment['taxes'] = $taxes;
+                            $payments[] = $payment;
+                        }
+                        $calendarData['payments'] = $payments;
                         $clientReturn['calendar'][$calendarId] = $calendarData;
                     }
                 }
