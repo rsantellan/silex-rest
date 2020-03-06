@@ -205,7 +205,7 @@ class UserProvider implements UserProviderInterface
     {
         $userList = [];
         try{
-            $sql = 'select email, username from tbl_users where email in (select username from mobile_used_users where folderdata like ?)';
+            $sql = 'select email, username from tbl_users where email in (select email from mobile_used_users where folderdata like ?)';
             $stmt = $this->conn->executeQuery($sql, array('%'.$folder.'%'));
             $userList = $stmt->fetchAll();
         }catch(\Exception $e){
