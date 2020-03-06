@@ -154,7 +154,7 @@ class ContableData
                                     foreach ($clientData['Cuentas'][$cuentaType]['Movimientos'] as $movimientoData) {
                                         $fecha = \DateTime::createFromFormat('M j Y', substr($movimientoData['FECHA'],0,11));
                                         $movimiento = [
-                                            'AcumuladoPesos' => round($movimientoData['AcumuladoPesos']),
+                                            'AcumuladoPesos' => number_format(round($movimientoData['AcumuladoPesos']), 0, ',', '.'),
                                             'Cliente' => $movimientoData['Cliente'],
                                             'Documento' => $movimientoData['Documento'],
                                             'FECHA' => $fecha->format('d/m/y'),
