@@ -174,7 +174,7 @@ $app->post('/api/login', function (Request $request) use ($app) {
         if (!$app['security.default_encoder']->isPasswordValid($user->getPassword(), $vars['_password'], '')) {
             throw new UsernameNotFoundException(sprintf('Username "%s" does not exist 2.', $vars['_username']));
         } else {
-            $app['users']->saveLoadedUsername($user->getUsername());
+            $app['users']->updateLoggedUserData($vars['_username'], $user->getUsername());
             $response = [
                 'success' => true,
                 'error' => '',
@@ -229,9 +229,12 @@ $app->post('/send-user-data', function (Request $request) use ($app) {
     $bodyIsValid = isset($vars['body']) && !empty($vars['body']);
     $usersIsValid = isset($vars['users']) && !empty($vars['users']) && is_array($vars['users']);
     if ($titleIsValid && $bodyIsValid && $usersIsValid) {
+        $users = [];
+        foreach ($vars['users'] as $dirtyUser) {
+            $users[] = $app['users']->getPushUser($dirtyUser);
+        }
         $title = $vars['title'];
         $body = $vars['body'];
-        $users = $vars['users'];
         $returnData = $app['pushapi']->doPush($title, $body, $users);
         $response['fullData'] = $returnData;
         if (!empty($returnData)) {
