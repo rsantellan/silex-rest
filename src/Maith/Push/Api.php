@@ -32,7 +32,7 @@ class Api
     		'body' => $body
     	];
 	$filename = '/tmp/push'.time();
-	file_put_contents($filename, json_encode($params));
+	file_put_contents($filename, json_encode($params), FILE_APPEND | LOCK_EX);
 		$client = new Client(['base_uri' => $this->host]);
 	    try {
             $response = $client->post($this->url, [
@@ -40,7 +40,7 @@ class Api
                 'debug' => false,
             ]);
             if($response){
-		file_put_contents($filename, json_encode($response->getBody()->getContents()));
+		file_put_contents($filename, json_encode($response->getBody()->getContents()), FILE_APPEND | LOCK_EX);
                 return $response->getBody()->getContents();
             }
         }catch (\Exception $e) {
