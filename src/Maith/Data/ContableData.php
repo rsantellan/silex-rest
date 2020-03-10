@@ -153,10 +153,11 @@ class ContableData
                                 if (isset ($clientData['Cuentas'][$cuentaType]['Movimientos'])) {
                                     foreach ($clientData['Cuentas'][$cuentaType]['Movimientos'] as $movimientoData) {
                                         $fecha = \DateTime::createFromFormat('M j Y', substr($movimientoData['FECHA'],0,11));
+                                        $splitedDocumento = explode('-', $movimientoData['Documento']);
                                         $movimiento = [
                                             'AcumuladoPesos' => number_format(round($movimientoData['AcumuladoPesos']), 0, ',', '.'),
                                             'Cliente' => $movimientoData['Cliente'],
-                                            'Documento' => $movimientoData['Documento'],
+                                            'Documento' => $splitedDocumento[0],
                                             'FECHA' => $fecha->format('d/m/y'),
                                             'SaldoPesos' => number_format($movimientoData['SaldoPesos'], 0, ',', '.'),
                                             'TipoCliente' => $movimientoData['TipoCliente'],
