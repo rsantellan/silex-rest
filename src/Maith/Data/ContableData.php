@@ -87,8 +87,9 @@ class ContableData
                             $payments[] = $payment;
                         }
                         $calendarData['payments'] = $payments;
-                        $clientReturn['calendar'][$calendarId] = $calendarData;
+                        $clientReturn['calendar'][] = $calendarData;
                     }
+                    usort($clientReturn['calendar'], "compareCalendarData");
                 }
                 if (isset($clientData['client'])) {
                     $clientReturn['client'] = $clientData['client'];
@@ -97,6 +98,24 @@ class ContableData
             }
         }
         return $returnData;
+    }
+
+    /**
+     * @param $calendarDataA
+     * @param $calendarDataB
+     * @return int
+     */
+    private function compareCalendarData($calendarDataA, $calendarDataB) {
+        if (!$calendarDataA['day'] && !$calendarDataB['day']) {
+            return 0;
+        }
+        if ($calendarDataA['day'] && !$calendarDataB['day']) {
+            return 1;
+        }
+        if (!$calendarDataA['day'] && $calendarDataB['day']) {
+            return -1;
+        }
+        return ($calendarDataA['day'] < $calendarDataB['day']) ? -1 : 1;
     }
 
     /**
