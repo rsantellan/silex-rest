@@ -87,7 +87,7 @@ class ContableData
                             $payments[] = $payment;
                         }
                         if (empty($payments)) {
-                            $payments = [
+                            $payments[] = [
                                 'whopays' => 0,
                                 'amountWithTaxes' => 0,
                                 'notes' => '',
