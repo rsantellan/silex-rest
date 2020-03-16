@@ -86,21 +86,6 @@ class ContableData
                             $payment['taxes'] = $taxes;
                             $payments[] = $payment;
                         }
-                        if (empty($payments)) {
-                            $payments[] = [
-                                'whopays' => 0,
-                                'amountWithTaxes' => 0,
-                                'notes' => '',
-                                'createdat' => '',
-                                'updatedat' => '',
-                                'paid' => false,
-                                'notconfirmed' => true,
-                                'notpayment' => false,
-                                'notified' => false,
-                                'reviewed' => false,
-                                'taxes' => []
-                            ];
-                        }
                         $calendarData['payments'] = $payments;
                         $clientReturn['calendar'][] = $calendarData;
                     }
