@@ -87,7 +87,9 @@ class ContableData
                             $payments[] = $payment;
                         }
                         $calendarData['payments'] = $payments;
-                        $clientReturn['calendar'][] = $calendarData;
+                        if (!empty($payments)) {
+                            $clientReturn['calendar'][] = $calendarData;
+                        }
                     }
                     usort($clientReturn['calendar'], [$this, "compareCalendarData"]);
                 }
