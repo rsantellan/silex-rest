@@ -83,13 +83,13 @@ class ContableData
                                 $tax['amount'] = number_format($tax['amount'], 0, ',', '.');
                                 $taxes[] = $tax;
                             }
-                            $payment['taxes'] = $taxes;
-                            $payments[] = $payment;
+                   	    $payment['taxes'] = $taxes;
+			    if (!empty($taxes))
+                            	$payments[] = $payment;
+				
                         }
                         $calendarData['payments'] = $payments;
-                        if (!empty($payments)) {
-                            $clientReturn['calendar'][] = $calendarData;
-                        }
+                        $clientReturn['calendar'][] = $calendarData;
                     }
                     usort($clientReturn['calendar'], [$this, "compareCalendarData"]);
                 }
