@@ -182,6 +182,9 @@ class ContableData
                                         } else {
                                             $showDocument = $splitedDocumento[0];
                                         }
+                                        if (substr_count($showDocument, 'Pago a Terceros : ') > 0) {
+                                            $showDocument = str_replace('Pago a Terceros : ', '', $showDocument);
+                                        }
 
                                         $movimiento = [
                                             'AcumuladoPesos' => number_format(round($movimientoData['AcumuladoPesos']), 0, ',', '.'),
