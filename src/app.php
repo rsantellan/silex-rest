@@ -56,7 +56,7 @@ $app['news'] = function () use ($app){
 };
 
 $app['pushapi'] = function () use ($app){
-    return new \Maith\Push\Api(HOST_PUSH_CODE, URL_PUSH_CODE, KEY_PUSH_CODE);
+    return new \Maith\Push\Api($app['dbs']['mysql_read'],HOST_PUSH_CODE, URL_PUSH_CODE, KEY_PUSH_CODE);
 };
 
 $app['contableData'] = function () use ($app){
