@@ -219,7 +219,7 @@ $app->post('/send-user-data', function (Request $request) use ($app) {
         || !(in_array(@$_SERVER['REMOTE_ADDR'], array('127.0.0.1', '::1')) || php_sapi_name() === 'cli-server')
     ) {
         $showError = true;
-        if ($havePassword && $vars['password'] !== PASSWORD_PUSH_CODE) {
+        if ($havePassword && $vars['password'] === PASSWORD_PUSH_CODE) {
             $showError = false;
         }
         if ($showError) {
