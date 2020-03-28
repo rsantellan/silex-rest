@@ -49,8 +49,9 @@ class Api
             //var_dump($response);
             if($response){
                 $responseCode = $response->getStatusCode();
-                $this->savePushData($responseCode, $params, $response->getBody()->getContents());
-                return $response->getBody()->getContents();
+                $responseContent = $response->getBody()->getContents();
+                $this->savePushData($responseCode, $params, $responseContent);
+                return $responseContent;
             } else {
                 $this->savePushData($responseCode, $params, []);
             }
