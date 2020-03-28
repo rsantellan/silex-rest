@@ -218,7 +218,11 @@ $app->post('/send-user-data', function (Request $request) use ($app) {
         || isset($_SERVER['HTTP_X_FORWARDED_FOR'])
         || !(in_array(@$_SERVER['REMOTE_ADDR'], array('127.0.0.1', '::1')) || php_sapi_name() === 'cli-server')
     ) {
-        if (!$havePassword && $vars['password'] !== PASSWORD_PUSH_CODE) {
+        $showError = true;
+        if ($havePassword && $vars['password'] !== PASSWORD_PUSH_CODE) {
+            $showError = false;
+        }
+        if ($showError) {
             header('HTTP/1.0 403 Forbidden');
             exit('You are not allowed to access here.');
         }
