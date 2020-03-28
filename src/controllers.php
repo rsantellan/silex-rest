@@ -212,19 +212,22 @@ $app->error(function (\Exception $e, Request $request, $code) use ($app) {
 });
 
 $app->post('/send-user-data', function (Request $request) use ($app) {
+    $vars = json_decode($request->getContent(), true);
+    $havePassword = isset($vars['password']) && !empty($vars['password']);
     if (isset($_SERVER['HTTP_CLIENT_IP'])
         || isset($_SERVER['HTTP_X_FORWARDED_FOR'])
         || !(in_array(@$_SERVER['REMOTE_ADDR'], array('127.0.0.1', '::1')) || php_sapi_name() === 'cli-server')
     ) {
-        header('HTTP/1.0 403 Forbidden');
-        exit('You are not allowed to access this file. Check ' . basename(__FILE__) . ' for more information.');
+        if (!$havePassword && $vars['password'] !== PASSWORD_PUSH_CODE) {
+            header('HTTP/1.0 403 Forbidden');
+            exit('You are not allowed to access here.');
+        }
     }
     $response = [
         'success' => false,
         'error' => 'Error',
         'fullData' => null,
     ];
-    $vars = json_decode($request->getContent(), true);
     $titleIsValid = isset($vars['title']) && !empty($vars['title']);
     $bodyIsValid = isset($vars['body']) && !empty($vars['body']);
     $usersIsValid = isset($vars['users']) && !empty($vars['users']) && is_array($vars['users']);
