@@ -40,12 +40,12 @@ class Api
 	    $filename = '/tmp/push'.time();
 	    $encoded_params = json_encode($params);
 		$client = new Client(['base_uri' => $this->host]);
+		$responseCode = 500;
 	    try {
             $response = $client->post($this->url, [
                 'json' => $params,
                 'debug' => false,
-            ]);
-            $responseCode = 500;
+            ]);           
             //var_dump($response);
             if($response){
                 $responseCode = $response->getStatusCode();
@@ -56,6 +56,7 @@ class Api
                 $this->savePushData($responseCode, $params, []);
             }
         }catch (\Exception $e) {
+			$this->savePushData($responseCode, $params, $e->getTraceAsString());
             throw $e;
         }
 		return null;
