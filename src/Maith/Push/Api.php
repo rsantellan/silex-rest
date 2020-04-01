@@ -56,7 +56,7 @@ class Api
                 $this->savePushData($responseCode, $params, []);
             }
         }catch (\Exception $e) {
-	    $this->savePushData($responseCode, $params, "[".$e->getCode()."]".$e-getMessage());
+	    $this->savePushData($responseCode, $params, "[".$e->getCode()."]".$e->getMessage());
             throw $e;
         }
 		return null;
