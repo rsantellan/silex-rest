@@ -45,6 +45,7 @@ class Api
             $response = $client->post($this->url, [
                 'json' => $params,
                 'debug' => false,
+                'http_errors' => false
             ]);           
             //var_dump($response);
             if($response){
