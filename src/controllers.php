@@ -238,7 +238,7 @@ $app->post('/send-user-data', function (Request $request) use ($app) {
     if ($titleIsValid && $bodyIsValid && $usersIsValid) {
         $users = [];
         foreach ($vars['users'] as $dirtyUser) {
-            $users[] = $app['users']->getPushUser($dirtyUser);
+            $users[$app['users']->getPushUser($dirtyUser)] = $app['users']->getPushUser($dirtyUser);
         }
         $title = $vars['title'];
         $body = $vars['body'];

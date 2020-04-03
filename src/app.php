@@ -11,7 +11,7 @@ $app->register(new HttpFragmentServiceProvider());
 $app->register(new Silex\Provider\SecurityServiceProvider());
 
 $app['security.jwt'] = [
-    'secret_key' => JWT_SECRET_KEY,
+    'secret_key' => JWT_SECRET_KEY.'1',
     'life_time'  => 31536000,
     'options'    => [
         'username_claim' => 'name', // default name, option specifying claim containing username
