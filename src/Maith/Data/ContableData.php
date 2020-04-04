@@ -177,13 +177,21 @@ class ContableData
                                         $showDocument = $movimientoData['Documento'];
                                         $splitedDocumento = explode('-', $movimientoData['Documento']);
                                         if (substr_count($movimientoData['Documento'], 'Pago de Terceros') > 0) {
+                                            if (isset($splitedDocumento[2]) && isset($splitedDocumento[3])) {
+                                                if (trim($splitedDocumento[2]) == trim($splitedDocumento[3])) {
+                                                    unset($splitedDocumento[3]);
+                                                }
+                                            }
                                             unset($splitedDocumento[0]);
-                                            $showDocument = implode('-', $splitedDocumento);
+                                            $showDocument = trim(implode('-', $splitedDocumento));
                                         } else {
                                             $showDocument = $splitedDocumento[0];
                                         }
                                         if (substr_count($showDocument, 'Pago a Terceros : ') > 0) {
                                             $showDocument = str_replace('Pago a Terceros : ', '', $showDocument);
+                                        }
+                                        if (substr_count($showDocument, 'Recibos de Cobranza') > 0) {
+                                            $showDocument = 'Recibos';
                                         }
 
                                         $movimiento = [
