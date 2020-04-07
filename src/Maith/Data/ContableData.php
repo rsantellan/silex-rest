@@ -153,7 +153,7 @@ class ContableData
         if (isset($response['isvalid'])) {
             $returnData['isvalid'] = $response['isvalid'];
         } else {
-            $returnData['isvalid'] = false;
+            $returnData['isvalid'] = true;
         }
         if ($returnData['isvalid']) {
             $returnData['data'] = [];
