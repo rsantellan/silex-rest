@@ -200,6 +200,152 @@ $app->post('/api/login', function (Request $request) use ($app) {
     return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
 });
 
+$app->get('/files', function () use ($app) {
+
+
+    $response = [
+        'success' => false,
+    ];
+    try {
+        $token = $app['security.token_storage']->getToken();
+        $clients = $app['users']->loadClientByUsername($token->getUsername());
+        $data = [];
+        foreach ($clients as $client)
+        {
+            $data[] = $app['clientData']->getFiles($client['id']);
+        }
+        $response['success'] = true;
+        $response['business'] = $data;
+    } catch (\Exception $e) {
+        $response['message'] = 'Ocurrio un error';
+    }
+    return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+});
+
+
+$app->get('/contact_info', function () use ($app) {
+
+    $html = '<ul>
+   <li>Morbi in sem quis dui placerat ornare. Pellentesque odio nisi, euismod in, pharetra a, ultricies in, diam. Sed arcu. Cras consequat.</li>
+   <li>Praesent dapibus, neque id cursus faucibus, tortor neque egestas augue, eu vulputate magna eros eu erat. Aliquam erat volutpat. Nam dui mi, tincidunt quis, accumsan porttitor, facilisis luctus, metus.</li>
+   <li>Phasellus ultrices nulla quis nibh. Quisque a lectus. Donec consectetuer ligula vulputate sem tristique cursus. Nam nulla quam, gravida non, commodo a, sodales sit amet, nisi.</li>
+   <li>Pellentesque fermentum dolor. Aliquam quam lectus, facilisis auctor, ultrices ut, elementum vulputate, nunc.</li>
+</ul>';
+    $response = [
+        'html' => $html,
+    ];
+    return $app->json($response, Response::HTTP_OK);
+});
+
+$app->post('/payment', function(Request $request) use ($app){
+
+    $response = [
+        'success' => false,
+    ];
+    $text = isset($_POST['text']) ? $_POST['text'] : null;
+    $amount = isset($_POST['amount']) ? $_POST['amount'] : null;
+    if (empty($text) || empty($amount)) {
+        $response['message'] = 'Campos invalidos';
+    } else {
+        if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+            // get details of the uploaded file
+            $fileTmpPath = $_FILES['file']['tmp_name'];
+            $fileName = $_FILES['file']['name'];
+            $fileSize = $_FILES['file']['size'];
+            $fileType = $_FILES['file']['type'];
+            $fileNameCmps = explode(".", $fileName);
+            $fileExtension = strtolower(end($fileNameCmps));
+            $uploadFileDir = '/tmp/';
+            $newFileName = md5(time() . $fileName) . '.' . $fileExtension;
+            $dest_path = $uploadFileDir . $newFileName;
+
+            if(move_uploaded_file($fileTmpPath, $dest_path))
+            {
+                $response['success'] = true;
+            }
+            else
+            {
+                $response['message'] = "Error al subir el archivo";
+            }
+        } else {
+            $response['message'] = 'Error al subir el archivo';
+        }
+    }
+    return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+});
+
+$app->get('/due_calendar', function () use ($app) {
+    $response = [
+        'success' => false,
+    ];
+    if (rand(0, 100) <= 10) {
+        $response['success'] = false;
+        $response['message'] = 'error';
+    } else {
+        $response['success'] = true;
+        $response['business'] = [
+            'name' => 'test',
+            'calendars' => [
+                'name' => 'calendario',
+                'due_dates' => [
+                    'date' => "dd/mm/yyyy",
+                    'amount' => 'Monto'
+                ],
+            ]
+        ];
+    }
+    return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+});
+
+$app->post('/contact', function(Request $request) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    $vars = json_decode($request->getContent(), true);
+    $name = null;
+    $email = null;
+    $phone = null;
+    $comment = null;
+    if (!empty($vars['name'])) {
+        $name = $vars['name'];
+    }
+    if (!empty($vars['email'])) {
+        $email = $vars['email'];
+    }
+    if (!empty($vars['phone'])) {
+        $phone = $vars['phone'];
+    }
+    if (!empty($vars['comment'])) {
+        $comment = $vars['comment'];
+    }
+    $response = [
+        'success' => false,
+    ];
+    if (empty($name) || empty($email) || empty($phone)) {
+        $response['message'] = 'Los campos no pueden venir vacios';
+    } else {
+        $response['success'] = true;
+    }
+    return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+});
+
+$app->get('/certificates', function () use ($app) {
+
+    $response = [
+        'success' => false,
+    ];
+
+    if (rand(0, 100) <= 10) {
+        $response['success'] = false;
+        $response['message'] = 'error';
+    } else {
+        $response['success'] = true;
+        $response['business'] = [
+            'name' => 'test',
+            'url' => 'private-url',
+        ];
+    }
+    return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+});
+
 $app->get('/api/protected_resource', function () use ($app) {
     return $app->json(['hello' => 'world']);
 });

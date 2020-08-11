@@ -64,6 +64,9 @@ $app['contableData'] = function () use ($app){
 };
 
 
+$app['clientData'] = function () use ($app){
+    return new \Maith\Data\ClientData(URL_CONTABLE_BASE_URL);
+};
 
 $app['security.firewalls'] = array(
     'login' => [
