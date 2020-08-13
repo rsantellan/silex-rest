@@ -7,6 +7,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 use Symfony\Component\Security\Core\Exception\UsernameNotFoundException;
+use Symfony\Component\Security\Core\User\User;
 
 //Request::setTrustedProxies(array('127.0.0.1'));
 
@@ -200,9 +201,15 @@ $app->post('/api/login', function (Request $request) use ($app) {
     return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
 });
 
+$app->get('/get/file/{clientId}/{id}', function ($clientId, $id) use ($app) {
+    $file = $app['clientData']->getFile($clientId, $id);
+    if (!file_exists($file)) {
+        $app->abort(404);
+    }
+    return $app->sendFile($file);
+})->bind('download_file');
+
 $app->get('/files', function () use ($app) {
-
-
     $response = [
         'success' => false,
     ];
@@ -212,11 +219,26 @@ $app->get('/files', function () use ($app) {
         $data = [];
         foreach ($clients as $client)
         {
-            $data[] = $app['clientData']->getFiles($client['id']);
+            $files = $app['clientData']->getFiles($client['id']);
+            if (!empty($files)) {
+                $returnData = [
+                    'name' => $files['name'],
+                    'files' => []
+                ];
+
+                foreach ($files['files'] as $file) {
+                    $returnData[] = [
+                        'name' => $file['name'],
+                        'url' => $app['url_generator']->generate('download_file', array( 'clientId' => $client['id'], 'id' => $file['id'] )),
+                    ];
+                }
+                $data[] = $returnData;
+            }
         }
         $response['success'] = true;
         $response['business'] = $data;
     } catch (\Exception $e) {
+        throw $e;
         $response['message'] = 'Ocurrio un error';
     }
     return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
@@ -225,20 +247,16 @@ $app->get('/files', function () use ($app) {
 
 $app->get('/contact_info', function () use ($app) {
 
-    $html = '<ul>
-   <li>Morbi in sem quis dui placerat ornare. Pellentesque odio nisi, euismod in, pharetra a, ultricies in, diam. Sed arcu. Cras consequat.</li>
-   <li>Praesent dapibus, neque id cursus faucibus, tortor neque egestas augue, eu vulputate magna eros eu erat. Aliquam erat volutpat. Nam dui mi, tincidunt quis, accumsan porttitor, facilisis luctus, metus.</li>
-   <li>Phasellus ultrices nulla quis nibh. Quisque a lectus. Donec consectetuer ligula vulputate sem tristique cursus. Nam nulla quam, gravida non, commodo a, sodales sit amet, nisi.</li>
-   <li>Pellentesque fermentum dolor. Aliquam quam lectus, facilisis auctor, ultrices ut, elementum vulputate, nunc.</li>
-</ul>';
     $response = [
-        'html' => $html,
+        'html' => $app['clientData']->getContactData(),
     ];
     return $app->json($response, Response::HTTP_OK);
 });
 
 $app->post('/payment', function(Request $request) use ($app){
-
+    $token = $app['security.token_storage']->getToken();
+    /** @var User $user */
+    $user = $app['users']->loadUserByUsername($token->getUsername());
     $response = [
         'success' => false,
     ];
@@ -261,7 +279,11 @@ $app->post('/payment', function(Request $request) use ($app){
 
             if(move_uploaded_file($fileTmpPath, $dest_path))
             {
-                $response['success'] = true;
+                $responseData = $app['clientData']->sendPaymentFile($user->getUsername(), $text, $amount, $fileName, $newFileName, $dest_path);
+                $response['success'] = $responseData['isvalid'];
+                if (!$response['success']) {
+                    $response['message'] = $responseData['message'];
+                }
             }
             else
             {
@@ -278,21 +300,21 @@ $app->get('/due_calendar', function () use ($app) {
     $response = [
         'success' => false,
     ];
-    if (rand(0, 100) <= 10) {
-        $response['success'] = false;
-        $response['message'] = 'error';
-    } else {
+    try {
+        $token = $app['security.token_storage']->getToken();
+        $clients = $app['users']->loadClientByUsername($token->getUsername());
+        $data = [];
+        foreach ($clients as $client)
+        {
+            $payments = $app['clientData']->getCalendarPaymentData($client['id']);
+            if (!empty($payments)) {
+                $data[] = $payments;
+            }
+        }
         $response['success'] = true;
-        $response['business'] = [
-            'name' => 'test',
-            'calendars' => [
-                'name' => 'calendario',
-                'due_dates' => [
-                    'date' => "dd/mm/yyyy",
-                    'amount' => 'Monto'
-                ],
-            ]
-        ];
+        $response['business'] = $data;
+    } catch (\Exception $e) {
+        $response['message'] = 'Ocurrio un error';
     }
     return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
 });
@@ -322,7 +344,11 @@ $app->post('/contact', function(Request $request) use ($app) {
     if (empty($name) || empty($email) || empty($phone)) {
         $response['message'] = 'Los campos no pueden venir vacios';
     } else {
-        $response['success'] = true;
+        $responseData = $app['clientData']->saveNewContact($name, $email, $phone, $comment);
+        $response['success'] = $responseData['isvalid'];
+        if (!$response['success']) {
+            $response['message'] = $responseData['message'];
+        }
     }
     return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
 });
@@ -333,15 +359,21 @@ $app->get('/certificates', function () use ($app) {
         'success' => false,
     ];
 
-    if (rand(0, 100) <= 10) {
-        $response['success'] = false;
-        $response['message'] = 'error';
-    } else {
+    try {
+        $token = $app['security.token_storage']->getToken();
+        $clients = $app['users']->loadClientByUsername($token->getUsername());
+        $data = [];
+        foreach ($clients as $client)
+        {
+            $certificate = $app['clientData']->getDgiQr($client['id']);
+            if (!empty($files)) {
+                $data[] = $certificate;
+            }
+        }
         $response['success'] = true;
-        $response['business'] = [
-            'name' => 'test',
-            'url' => 'private-url',
-        ];
+        $response['business'] = $data;
+    } catch (\Exception $e) {
+        $response['message'] = 'Ocurrio un error';
     }
     return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
 });
