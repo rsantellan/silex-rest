@@ -227,7 +227,7 @@ $app->get('/files', function () use ($app) {
                 ];
 
                 foreach ($files['files'] as $file) {
-                    $returnData[] = [
+                    $returnData['files'] = [
                         'name' => $file['name'],
                         'url' => $app['url_generator']->generate('download_file', array( 'clientId' => $client['id'], 'id' => $file['id'] )),
                     ];
