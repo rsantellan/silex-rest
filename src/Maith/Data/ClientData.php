@@ -91,8 +91,9 @@ class ClientData
         $client = new Client();
         $response = $client->get($url);
         if ($response) {
+	    $contents = $response->getBody()->getContents();
             if ($response->getStatusCode() === 200) {
-                return $this->parseGetDgiQrResponse(json_decode($response->getBody()->getContents(), true));
+                return $this->parseGetDgiQrResponse(json_decode($contents, true));
             }
         }
         return [];
