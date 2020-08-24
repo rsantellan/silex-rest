@@ -99,7 +99,7 @@ class JWTListener implements ListenerInterface {
     {
         $token = $request->headers->get($this->options['header_name'], null);
         if (empty($token)) {
-            $headerName = strtolower($this->options['header_name']);
+            $headerName = $this->options['header_name'];
             $apacheHeaders = apache_request_headers();
             if (isset($apacheHeaders[$headerName])) {
                 $token = $apacheHeaders[$headerName];
