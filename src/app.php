@@ -15,7 +15,7 @@ $app['security.jwt'] = [
     'life_time'  => 31536000,
     'options'    => [
         'username_claim' => 'name', // default name, option specifying claim containing username
-        'header_name' => 'X-Access-Token', // default null, option for usage normal oauth2 header
+        'header_name' => 'Authorization', // default null, option for usage normal oauth2 header
         'token_prefix' => 'Bearer',
     ]
 ];
