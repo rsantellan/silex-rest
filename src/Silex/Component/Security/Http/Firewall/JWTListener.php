@@ -6,6 +6,7 @@ use HttpEncodingException;
 use Silex\Component\Security\Core\Encoder\TokenEncoderInterface;
 use Silex\Component\Security\Http\Token\JWTToken;
 use Symfony\Component\HttpFoundation\File\Exception\AccessDeniedException;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Symfony\Component\Security\Core\Authentication\AuthenticationManagerInterface;
 use Symfony\Component\Security\Core\Authentication\Token\PreAuthenticatedToken;
@@ -61,7 +62,7 @@ class JWTListener implements ListenerInterface {
     {
         $request = $event->getRequest();
         $requestToken = $this->getToken(
-            $request->headers->get($this->options['header_name'], null)
+            $this->getRequestToken($request)
         );
         if (!empty($requestToken)) {
             try {
@@ -88,6 +89,23 @@ class JWTListener implements ListenerInterface {
                 //var_dump($e->getMessage());
             }
         }
+    }
+
+    /**
+     * @param Request $request
+     * @return array|mixed|string|null
+     */
+    private function getRequestToken(Request $request)
+    {
+        $token = $request->headers->get($this->options['header_name'], null);
+        if (empty($token)) {
+            $headerName = strtolower($this->options['header_name']);
+            $apacheHeaders = apache_request_headers();
+            if (isset($apacheHeaders[$headerName])) {
+                $token = $apacheHeaders[$headerName];
+            }
+        }
+        return $token;
     }
 
     /**
