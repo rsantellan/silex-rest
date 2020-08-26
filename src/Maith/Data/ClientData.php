@@ -82,9 +82,10 @@ class ClientData
 
     /**
      * @param $clientId
+     * @param bool $debug
      * @return array
      */
-    public function getDgiQr($clientId)
+    public function getDgiQr($clientId, $debug = false)
     {
         $url = sprintf($this->baseUrl.self::DGI_QR, $clientId);
         /** Object Way **/
@@ -92,7 +93,11 @@ class ClientData
         $response = $client->get($url);
         if ($response) {
             if ($response->getStatusCode() === 200) {
-                return $this->parseGetDgiQrResponse(json_decode($response->getBody()->getContents(), true));
+                return $this->parseGetDgiQrResponse(json_decode($response->getBody()->getContents(), true), $clientId, $debug);
+            } else {
+                if ($debug) {
+
+                }
             }
         }
         return [];
@@ -221,16 +226,22 @@ class ClientData
 
     /**
      * @param $response
+     * @param $clientId
+     * @param $debug
      * @return array
      */
-    private function parseGetDgiQrResponse($response)
+    private function parseGetDgiQrResponse($response, $clientId, $debug)
     {
         if ($response && $response['isvalid']) {
-            if (!empty($response['data']['name'])) {
-                return [
+            if (!empty($response['data']['name']) && !$debug) {
+                $data = [
                     'name' => $response['data']['name'],
                     'url' => $response['data']['url'],
                 ];
+                if ($debug) {
+                    $data['clientId'] = $clientId;
+                }
+                return $data;
             }
         }
         return [];

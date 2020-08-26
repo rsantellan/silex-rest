@@ -353,19 +353,19 @@ $app->post('/contact', function(Request $request) use ($app) {
     return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
 });
 
-$app->get('/certificates', function () use ($app) {
+$app->get('/certificates', function (Request $request) use ($app) {
 
     $response = [
         'success' => false,
     ];
-
+    $debug = $request->get('debug', false);
     try {
         $token = $app['security.token_storage']->getToken();
         $clients = $app['users']->loadClientByUsername($token->getUsername());
         $data = [];
         foreach ($clients as $client)
         {
-            $certificate = $app['clientData']->getDgiQr($client['id']);
+            $certificate = $app['clientData']->getDgiQr($client['id'], $debug);
             if (!empty($files)) {
                 $data[] = $certificate;
             }
