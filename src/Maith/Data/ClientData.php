@@ -233,7 +233,7 @@ class ClientData
     private function parseGetDgiQrResponse($response, $clientId, $debug)
     {
         if ($response && $response['isvalid']) {
-            if (!empty($response['data']['name']) && !$debug) {
+            if (!empty($response['data']['name'])) {
                 $data = [
                     'name' => $response['data']['name'],
                     'url' => $response['data']['url'],

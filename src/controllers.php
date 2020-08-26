@@ -366,7 +366,7 @@ $app->get('/certificates', function (Request $request) use ($app) {
         foreach ($clients as $client)
         {
             $certificate = $app['clientData']->getDgiQr($client['id'], $debug);
-            if (!empty($files)) {
+            if (!empty($certificate)) {
                 $data[] = $certificate;
             }
         }
