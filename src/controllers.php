@@ -260,9 +260,9 @@ $app->post('/payment', function(Request $request) use ($app){
     $response = [
         'success' => false,
     ];
-    $text = isset($_POST['text']) ? $_POST['text'] : '';
+    $text = isset($_POST['text']) ? $_POST['text'] : '-';
     $amount = isset($_POST['amount']) ? $_POST['amount'] : null;
-    if (empty($amount)) {
+    if (empty($text) || empty($amount)) {
         $response['message'] = 'Campos invalidos';
     } else {
         if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
