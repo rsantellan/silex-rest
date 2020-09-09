@@ -201,10 +201,17 @@ $app->post('/api/login', function (Request $request) use ($app) {
     return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
 });
 
-$app->get('/get/file/{clientId}/{id}', function ($clientId, $id) use ($app) {
+$app->get('/get-file/{clientId}/{id}/{hash}', function ($clientId, $id, $hash) use ($app) {
+    $today = new \DateTime();
+    $testHash = md5($today->format('Y-m-d'));
+    if ($hash != $testHash) {
+        $app->abort(403);
+        return;
+    }
     $file = $app['clientData']->getFile($clientId, $id);
     if (!file_exists($file)) {
         $app->abort(404);
+        return;
     }
     return $app->sendFile($file);
 })->bind('download_file');
@@ -217,6 +224,8 @@ $app->get('/files', function () use ($app) {
         $token = $app['security.token_storage']->getToken();
         $clients = $app['users']->loadClientByUsername($token->getUsername());
         $data = [];
+        $today = new \DateTime();
+        $hash = md5($today->format('Y-m-d'));
         foreach ($clients as $client)
         {
             $files = $app['clientData']->getFiles($client['id']);
@@ -229,7 +238,7 @@ $app->get('/files', function () use ($app) {
                 foreach ($files['files'] as $file) {
                     $returnData['files'][] = [
                         'name' => $file['name'],
-                        'url' => $app['url_generator']->generate('download_file', array( 'clientId' => $client['id'], 'id' => $file['id'] )),
+                        'url' => $app['url_generator']->generate('download_file', array( 'clientId' => $client['id'], 'id' => $file['id'], 'hash' => $hash )),
                     ];
                 }
                 $data[] = $returnData;

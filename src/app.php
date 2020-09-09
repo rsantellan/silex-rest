@@ -70,7 +70,7 @@ $app['clientData'] = function () use ($app){
 
 $app['security.firewalls'] = array(
     'login' => [
-        'pattern' => 'login|register|oauth|send-data|send-user-data|get-folder-data|contact',
+        'pattern' => 'login|register|oauth|send-data|send-user-data|get-folder-data|contact|get-file',
         'anonymous' => true,
     ],
     'secured' => array(
