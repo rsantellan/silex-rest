@@ -271,35 +271,41 @@ $app->post('/payment', function(Request $request) use ($app){
     ];
     $text = isset($_POST['text']) ? $_POST['text'] : '-';
     $amount = isset($_POST['amount']) ? $_POST['amount'] : null;
-    if (empty($text) || empty($amount)) {
+    if (empty($amount)) {
         $response['message'] = 'Campos invalidos';
     } else {
-        if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
-            // get details of the uploaded file
-            $fileTmpPath = $_FILES['file']['tmp_name'];
-            $fileName = $_FILES['file']['name'];
-            $fileSize = $_FILES['file']['size'];
-            $fileType = $_FILES['file']['type'];
-            $fileNameCmps = explode(".", $fileName);
-            $fileExtension = strtolower(end($fileNameCmps));
-            $uploadFileDir = '/tmp/';
-            $newFileName = md5(time() . $fileName) . '.' . $fileExtension;
-            $dest_path = $uploadFileDir . $newFileName;
+        $fileName = null;
+        $newFileName = null;
+        $dest_path = null;
+        $error = false;
+        if (isset($_FILES['file'])) {
+            if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+                // get details of the uploaded file
+                $fileTmpPath = $_FILES['file']['tmp_name'];
+                $fileName = $_FILES['file']['name'];
+                $fileSize = $_FILES['file']['size'];
+                $fileType = $_FILES['file']['type'];
+                $fileNameCmps = explode(".", $fileName);
+                $fileExtension = strtolower(end($fileNameCmps));
+                $uploadFileDir = '/tmp/';
+                $newFileName = md5(time() . $fileName) . '.' . $fileExtension;
+                $dest_path = $uploadFileDir . $newFileName;
 
-            if(move_uploaded_file($fileTmpPath, $dest_path))
-            {
-                $responseData = $app['clientData']->sendPaymentFile($user->getUsername(), $text, $amount, $fileName, $newFileName, $dest_path);
-                $response['success'] = $responseData['isvalid'];
-                if (!$response['success']) {
-                    $response['message'] = $responseData['message'];
+                if(!move_uploaded_file($fileTmpPath, $dest_path)){
+                    $response['message'] = "Error al subir el archivo";
+                    $error = true;
                 }
+            } else {
+                $response['message'] = 'Error al subir el archivo';
+                $error = true;
             }
-            else
-            {
-                $response['message'] = "Error al subir el archivo";
+        }
+        if (!$error) {
+            $responseData = $app['clientData']->sendPaymentFile($user->getUsername(), $text, $amount, $fileName, $newFileName, $dest_path);
+            $response['success'] = $responseData['isvalid'];
+            if (!$response['success']) {
+                $response['message'] = $responseData['message'];
             }
-        } else {
-            $response['message'] = 'Error al subir el archivo';
         }
     }
     return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
@@ -429,6 +435,8 @@ $app->post('/send-user-data', function (Request $request) use ($app) {
         }
         $title = $vars['title'];
         $body = $vars['body'];
+        // Add Title to Body.
+        $body = $title.'</br>'.$body;
         $returnData = $app['pushapi']->doPush($title, $body, $users);
         $response['fullData'] = $returnData;
         if (!empty($returnData)) {
