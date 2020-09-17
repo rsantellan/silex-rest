@@ -21,6 +21,15 @@ class NewsProvider
     	}
     	$sql = 'select id, title, content, author, timestamp from ec_blog where private=0 order by id desc limit '.$limit;
     	$stmt = $this->conn->executeQuery($sql, array());
-        return $stmt->fetchAll();
+        $return = [];
+    	foreach ($stmt->fetchAll() as $row) {
+            $data = [
+                'id' => $row['id'],
+                'title' => $row['title'],
+                'content' => $row['title'] . ' ' . $row['content'],
+            ];
+            $return[] = $data;
+        }
+    	return $return;
     }
 }
