@@ -16,7 +16,7 @@ class ClientData
     const CONTACT_DATA = '/localhost/contact-info';
     const PAYMENT_FILE = '/localhost/upload-payment-file?XDEBUG_SESSION_START=PHPSTORM';
     const SAVE_CONTACT = '/localhost/create-contact-by-app';
-    const PAYMENTS_DATA = '/localhost/%s/payment-summary';
+    const PAYMENTS_DATA = '/localhost/%s/payment-summary?XDEBUG_SESSION_START=PHPSTORM';
 
     private $baseUrl;
 

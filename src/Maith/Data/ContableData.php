@@ -193,7 +193,13 @@ class ContableData
                                         if (substr_count($showDocument, 'Recibos de Cobranza') > 0) {
                                             $showDocument = 'Recibos';
                                         }
-
+                                        $showDocument = trim($showDocument);
+                                        if (substr_count($showDocument, 'Cambio de Saldos') > 0) {
+                                            $showDocument = 'Cambio de Saldos';
+                                        }
+                                        if (substr_count($showDocument, 'eFactura') > 0) {
+                                            $showDocument = 'eFactura '. substr($showDocument, -5, 5);
+                                        }
                                         $movimiento = [
                                             'AcumuladoPesos' => number_format(round($movimientoData['AcumuladoPesos']), 0, ',', '.'),
                                             'Cliente' => $movimientoData['Cliente'],
