@@ -229,7 +229,17 @@ $app->get('/files', function () use ($app) {
         $permissionData = $app['users']->getPermissionOfUser($token->getUsername(), 'files');
         foreach ($clients as $client)
         {
-            if (!in_array($client['id'], $permissionData)) {
+            $valid = false;
+            if (is_array($permissionData)) {
+                if (!in_array($client['id'], $permissionData)) {
+                    $valid = true;
+                }
+            } else {
+                if ($client['id'] == $permissionData) {
+                    $valid = true;
+                }
+            }
+            if ($valid) {
                 $files = $app['clientData']->getFiles($client['id']);
                 if (!empty($files)) {
                     $returnData = [
