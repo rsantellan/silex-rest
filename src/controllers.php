@@ -226,22 +226,25 @@ $app->get('/files', function () use ($app) {
         $data = [];
         $today = new \DateTime();
         $hash = md5($today->format('Y-m-d'));
+        $permissionData = $app['users']->getPermissionOfUser($token->getUsername(), 'files');
         foreach ($clients as $client)
         {
-            $files = $app['clientData']->getFiles($client['id']);
-            if (!empty($files)) {
-                $returnData = [
-                    'name' => $files['name'],
-                    'files' => []
-                ];
-
-                foreach ($files['files'] as $file) {
-                    $returnData['files'][] = [
-                        'name' => $file['name'],
-                        'url' => $app['url_generator']->generate('download_file', array( 'clientId' => $client['id'], 'id' => $file['id'], 'hash' => $hash )),
+            if (!in_array($client['id'], $permissionData)) {
+                $files = $app['clientData']->getFiles($client['id']);
+                if (!empty($files)) {
+                    $returnData = [
+                        'name' => $files['name'],
+                        'files' => []
                     ];
+
+                    foreach ($files['files'] as $file) {
+                        $returnData['files'][] = [
+                            'name' => $file['name'],
+                            'url' => $app['url_generator']->generate('download_file', array( 'clientId' => $client['id'], 'id' => $file['id'], 'hash' => $hash )),
+                        ];
+                    }
+                    $data[] = $returnData;
                 }
-                $data[] = $returnData;
             }
         }
         $response['success'] = true;
