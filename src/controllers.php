@@ -239,22 +239,23 @@ $app->get('/files', function () use ($app) {
                     $valid = true;
                 }
             }
-            if ($valid) {
-                $files = $app['clientData']->getFiles($client['id']);
-                if (!empty($files)) {
-                    $returnData = [
-                        'name' => $files['name'],
-                        'files' => []
-                    ];
 
+            $files = $app['clientData']->getFiles($client['id']);
+            if (!empty($files)) {
+                $returnData = [
+                    'name' => $files['name'],
+                    'files' => []
+                ];
+                if ($valid) {
                     foreach ($files['files'] as $file) {
                         $returnData['files'][] = [
                             'name' => $file['name'],
                             'url' => $app['url_generator']->generate('download_file', array( 'clientId' => $client['id'], 'id' => $file['id'], 'hash' => $hash )),
                         ];
                     }
-                    $data[] = $returnData;
                 }
+                $data[] = $returnData;
+
             }
         }
         $response['success'] = true;
@@ -391,11 +392,24 @@ $app->get('/certificates', function (Request $request) use ($app) {
         $token = $app['security.token_storage']->getToken();
         $clients = $app['users']->loadClientByUsername($token->getUsername());
         $data = [];
+        $permissionData = $app['users']->getPermissionOfUser($token->getUsername(), 'certificates');
         foreach ($clients as $client)
         {
-            $certificate = $app['clientData']->getDgiQr($client['id'], $debug);
-            if (!empty($certificate)) {
-                $data[] = $certificate;
+            $valid = false;
+            if (is_array($permissionData)) {
+                if (!in_array($client['id'], $permissionData)) {
+                    $valid = true;
+                }
+            } else {
+                if ($client['id'] == $permissionData) {
+                    $valid = true;
+                }
+            }
+            if ($valid) {
+                $certificate = $app['clientData']->getDgiQr($client['id'], $debug);
+                if (!empty($certificate)) {
+                    $data[] = $certificate;
+                }
             }
         }
         $response['success'] = true;
