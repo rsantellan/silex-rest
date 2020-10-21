@@ -331,7 +331,7 @@ $app->get('/due_calendar', function () use ($app) {
         $token = $app['security.token_storage']->getToken();
         $clients = $app['users']->loadClientByUsername($token->getUsername());
         $data = [];
-        $permissionData = $app['users']->getPermissionOfUser($token->getUsername(), 'accounts');
+        $permissionData = $app['users']->getPermissionOfUser($token->getUsername(), 'monthAmount');
         foreach ($clients as $client)
         {
             if (in_array($client['id'], $permissionData)) {
