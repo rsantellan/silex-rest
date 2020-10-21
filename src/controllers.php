@@ -239,23 +239,21 @@ $app->get('/files', function () use ($app) {
                     $valid = true;
                 }
             }
-
-            $files = $app['clientData']->getFiles($client['id']);
-            if (!empty($files)) {
-                $returnData = [
-                    'name' => $files['name'],
-                    'files' => []
-                ];
-                if ($valid) {
+            if ($valid) {
+                $files = $app['clientData']->getFiles($client['id']);
+                if (!empty($files)) {
+                    $returnData = [
+                        'name' => $files['name'],
+                        'files' => []
+                    ];
                     foreach ($files['files'] as $file) {
                         $returnData['files'][] = [
                             'name' => $file['name'],
                             'url' => $app['url_generator']->generate('download_file', array( 'clientId' => $client['id'], 'id' => $file['id'], 'hash' => $hash )),
                         ];
                     }
+                    $data[] = $returnData;
                 }
-                $data[] = $returnData;
-
             }
         }
         $response['success'] = true;
@@ -333,11 +331,14 @@ $app->get('/due_calendar', function () use ($app) {
         $token = $app['security.token_storage']->getToken();
         $clients = $app['users']->loadClientByUsername($token->getUsername());
         $data = [];
+        $permissionData = $app['users']->getPermissionOfUser($token->getUsername(), 'accounts');
         foreach ($clients as $client)
         {
-            $payments = $app['clientData']->getCalendarPaymentData($client['id']);
-            if (!empty($payments)) {
-                $data[] = $payments;
+            if (in_array($client['id'], $permissionData)) {
+                $payments = $app['clientData']->getCalendarPaymentData($client['id']);
+                if (!empty($payments)) {
+                    $data[] = $payments;
+                }
             }
         }
         $response['success'] = true;
