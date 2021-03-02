@@ -173,6 +173,8 @@ class UserProvider implements UserProviderInterface
                     $services = [
                         'month-amount' => in_array($client['id'], $monthAmountPermissions),
                         'current-account-data' => in_array($client['id'], $accountsPermissions),
+                        'files' => in_array($client['id'], $filesPermissions),
+                        'certificates' => in_array($client['id'], $certificatesPermissions),
                     ];
                     $client['permissions'] = $services;
                     $clientList[] = $client;
