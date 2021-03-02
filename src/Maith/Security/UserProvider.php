@@ -190,12 +190,12 @@ class UserProvider implements UserProviderInterface
     private function checkClientInPermissionList($clientId, $permissionList)
     {
         $valid = false;
-        if (is_array($permissionData)) {
-            if (in_array($clientId, $permissionData)) {
+        if (is_array($permissionList)) {
+            if (in_array($clientId, $permissionList)) {
                 $valid = true;
             }
         } else {
-            if ($clientId == $permissionData) {
+            if ($clientId == $permissionList) {
                 $valid = true;
             }
         }
