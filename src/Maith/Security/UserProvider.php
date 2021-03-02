@@ -146,6 +146,8 @@ class UserProvider implements UserProviderInterface
             $clientList = [];
             $monthAmountPermissions = $this->getPermissionOfUser($data['email'], 'monthAmount');
             $accountsPermissions = $this->getPermissionOfUser($data['email'], 'accounts');
+            $certificatesPermissions = $this->getPermissionOfUser($data['email'], 'certificates');
+            $filesPermissions = $this->getPermissionOfUser($data['email'], 'files');
             if(!empty($data['group_id']))
             {
                 $sqlClientId = 'select id, folder_number, social_reason from ec_clients where id_group = ?';
@@ -154,6 +156,9 @@ class UserProvider implements UserProviderInterface
                     $services = [
                         'month-amount' => in_array($client['id'], $monthAmountPermissions),
                         'current-account-data' => in_array($client['id'], $accountsPermissions),
+                        'files' => in_array($client['id'], $filesPermissions),
+                        'certificates' => in_array($client['id'], $certificatesPermissions),
+
                     ];
                     $client['permissions'] = $services;
                     $clientList[] = $client;
