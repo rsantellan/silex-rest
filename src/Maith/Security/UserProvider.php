@@ -154,10 +154,10 @@ class UserProvider implements UserProviderInterface
                 $stmt = $this->clientConn->executeQuery($sqlClientId, array($data['group_id']));
                 foreach( $stmt->fetchAll() as $client) {
                     $services = [
-                        'month-amount' => in_array($client['id'], $monthAmountPermissions),
-                        'current-account-data' => in_array($client['id'], $accountsPermissions),
-                        'files' => in_array($client['id'], $filesPermissions),
-                        'certificates' => in_array($client['id'], $certificatesPermissions),
+                        'month-amount' => $this->checkClientInPermissionList($client['id'], $monthAmountPermissions),
+                        'current-account-data' => $this->checkClientInPermissionList($client['id'], $accountsPermissions),
+                        'files' => $this->checkClientInPermissionList($client['id'], $filesPermissions),
+                        'certificates' => $this->checkClientInPermissionList($client['id'], $certificatesPermissions),
 
                     ];
                     $client['permissions'] = $services;
@@ -171,10 +171,10 @@ class UserProvider implements UserProviderInterface
                 $client = $stmt->fetch();
                 if(!empty($client)){
                     $services = [
-                        'month-amount' => in_array($client['id'], $monthAmountPermissions),
-                        'current-account-data' => in_array($client['id'], $accountsPermissions),
-                        'files' => in_array($client['id'], $filesPermissions),
-                        'certificates' => in_array($client['id'], $certificatesPermissions),
+                        'month-amount' => $this->checkClientInPermissionList($client['id'], $monthAmountPermissions),
+                        'current-account-data' => $this->checkClientInPermissionList($client['id'], $accountsPermissions),
+                        'files' => $this->checkClientInPermissionList($client['id'], $filesPermissions),
+                        'certificates' => $this->checkClientInPermissionList($client['id'], $certificatesPermissions),
                     ];
                     $client['permissions'] = $services;
                     $clientList[] = $client;
@@ -185,6 +185,21 @@ class UserProvider implements UserProviderInterface
             var_dump($e->getMessage());
         }
         return [];
+    }
+
+    private function checkClientInPermissionList($clientId, $permissionList)
+    {
+        $valid = false;
+        if (is_array($permissionData)) {
+            if (in_array($clientId, $permissionData)) {
+                $valid = true;
+            }
+        } else {
+            if ($clientId == $permissionData) {
+                $valid = true;
+            }
+        }
+        return $valid;
     }
 
     /**
