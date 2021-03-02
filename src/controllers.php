@@ -231,7 +231,7 @@ $app->get('/files', function () use ($app) {
         {
             $valid = false;
             if (is_array($permissionData)) {
-                if (!in_array($client['id'], $permissionData)) {
+                if (in_array($client['id'], $permissionData)) {
                     $valid = true;
                 }
             } else {
@@ -398,7 +398,7 @@ $app->get('/certificates', function (Request $request) use ($app) {
         {
             $valid = false;
             if (is_array($permissionData)) {
-                if (!in_array($client['id'], $permissionData)) {
+                if (in_array($client['id'], $permissionData)) {
                     $valid = true;
                 }
             } else {
