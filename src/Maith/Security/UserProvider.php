@@ -182,7 +182,7 @@ class UserProvider implements UserProviderInterface
             }
             return $clientList;
         }catch(\Exception $e){
-            //var_dump($e->getMessage());
+            var_dump($e->getMessage());
         }
         return [];
     }
