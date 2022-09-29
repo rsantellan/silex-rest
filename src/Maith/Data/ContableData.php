@@ -174,7 +174,7 @@ class ContableData
                                 if (isset ($clientData['Cuentas'][$cuentaType]['Movimientos'])) {
                                     foreach ($clientData['Cuentas'][$cuentaType]['Movimientos'] as $movimientoData) {
                                         $fecha = \DateTime::createFromFormat('M j Y', substr($movimientoData['FECHA'],0,11));
-                                        $showDocument = $this->parseDocumentName($movimientoData['Documento']);
+                                        $showDocument = $this->parseDocumentName($movimientoData['Documento'], $cuentaType);
 
 
                                         $movimiento = [
@@ -210,11 +210,15 @@ class ContableData
 
     /**
      * @param $document
+     * @param $accountType
      * @return string
      */
-    private function parseDocumentName($document)
+    private function parseDocumentName($document, $accountType)
     {
         $showDocument = $document;
+        if (substr_count($showDocument, 'E-Factura.') > 0 && substr_count($accountType,'HONORARIOS') > 0) {
+            return $document;
+        }
         if (substr_count($showDocument, 'E-Ticket.') > 0) {
             // E-Ticket. n\u00b0: 2535 BPS Generico WEB
             $showDocument = substr($showDocument, 20);
