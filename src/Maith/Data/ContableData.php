@@ -174,32 +174,9 @@ class ContableData
                                 if (isset ($clientData['Cuentas'][$cuentaType]['Movimientos'])) {
                                     foreach ($clientData['Cuentas'][$cuentaType]['Movimientos'] as $movimientoData) {
                                         $fecha = \DateTime::createFromFormat('M j Y', substr($movimientoData['FECHA'],0,11));
-                                        $showDocument = $movimientoData['Documento'];
-                                        $splitedDocumento = explode('-', $movimientoData['Documento']);
-                                        if (substr_count($movimientoData['Documento'], 'Pago de Terceros') > 0) {
-                                            if (isset($splitedDocumento[2]) && isset($splitedDocumento[3])) {
-                                                if (trim($splitedDocumento[2]) == trim($splitedDocumento[3])) {
-                                                    unset($splitedDocumento[3]);
-                                                }
-                                            }
-                                            unset($splitedDocumento[0]);
-                                            $showDocument = trim(implode('-', $splitedDocumento));
-                                        } else {
-                                            $showDocument = $splitedDocumento[0];
-                                        }
-                                        if (substr_count($showDocument, 'Pago a Terceros : ') > 0) {
-                                            $showDocument = str_replace('Pago a Terceros : ', '', $showDocument);
-                                        }
-                                        if (substr_count($showDocument, 'Recibos de Cobranza') > 0) {
-                                            $showDocument = 'Recibos';
-                                        }
-                                        $showDocument = trim($showDocument);
-                                        if (substr_count($showDocument, 'Cambio de Saldos') > 0) {
-                                            $showDocument = 'Cambio de Saldos';
-                                        }
-                                        if (substr_count($showDocument, 'eFactura') > 0) {
-                                            $showDocument = 'eFactura '. substr($showDocument, -5, 5);
-                                        }
+                                        $showDocument = $this->parseDocumentName($movimientoData['Documento']);
+
+
                                         $movimiento = [
                                             'AcumuladoPesos' => number_format(round($movimientoData['AcumuladoPesos']), 0, ',', '.'),
                                             'Cliente' => $movimientoData['Cliente'],
@@ -229,6 +206,46 @@ class ContableData
             }
         }
         return $returnData;
+    }
+
+    /**
+     * @param $document
+     * @return string
+     */
+    private function parseDocumentName($document)
+    {
+        $showDocument = $document;
+        if (substr_count($showDocument, 'E-Ticket.') > 0) {
+            // E-Ticket. n\u00b0: 2535 BPS Generico WEB
+            $showDocument = substr($showDocument, 20);
+        } else {
+            $splitedDocumento = explode('-', $document);
+            if (substr_count($document, 'Pago de Terceros') > 0) {
+                if (isset($splitedDocumento[2]) && isset($splitedDocumento[3])) {
+                    if (trim($splitedDocumento[2]) == trim($splitedDocumento[3])) {
+                        unset($splitedDocumento[3]);
+                    }
+                }
+                unset($splitedDocumento[0]);
+                $showDocument = trim(implode('-', $splitedDocumento));
+            } else {
+                $showDocument = $splitedDocumento[0];
+            }
+            if (substr_count($showDocument, 'Pago a Terceros : ') > 0) {
+                $showDocument = str_replace('Pago a Terceros : ', '', $showDocument);
+            }
+            if (substr_count($showDocument, 'Recibos de Cobranza') > 0) {
+                $showDocument = 'Recibos';
+            }
+            $showDocument = trim($showDocument);
+            if (substr_count($showDocument, 'Cambio de Saldos') > 0) {
+                $showDocument = 'Cambio de Saldos';
+            }
+            if (substr_count($showDocument, 'eFactura') > 0) {
+                $showDocument = 'eFactura '. substr($showDocument, -5, 5);
+            }
+        }
+        return $showDocument;
     }
 
     /**

@@ -42,13 +42,17 @@ $app->register(new Silex\Provider\DoctrineServiceProvider(), array(
     ),
 ));
 
+$app['clientData'] = function () use ($app){
+    return new \Maith\Data\ClientData(URL_CONTABLE_BASE_URL);
+};
+
 $app['security.default_encoder'] = function ($app) {
     // Plain text (e.g. for debugging)
     return new \Maith\Security\Md5PasswordEncoder();
 };
 
 $app['users'] = function () use ($app) {
-	return new \Maith\Security\UserProvider($app['dbs']['mysql_read'], $app['dbs']['mysql_write']);
+	return new \Maith\Security\UserProvider($app['dbs']['mysql_read'], $app['clientData']);
 };
 
 $app['news'] = function () use ($app){
@@ -63,10 +67,6 @@ $app['contableData'] = function () use ($app){
     return new \Maith\Data\ContableData(URL_CONTABLE_PAYMENT, URL_CONTABLE_CCTE);
 };
 
-
-$app['clientData'] = function () use ($app){
-    return new \Maith\Data\ClientData(URL_CONTABLE_BASE_URL);
-};
 
 $app['security.firewalls'] = array(
     'login' => [

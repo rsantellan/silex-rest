@@ -14,9 +14,10 @@ class ClientData
     const GET_FILE = '/localhost/%s/file/%s';
     const DGI_QR = '/localhost/%s/dgi-qr';
     const CONTACT_DATA = '/localhost/contact-info';
-    const PAYMENT_FILE = '/localhost/upload-payment-file?XDEBUG_SESSION_START=PHPSTORM';
+    const PAYMENT_FILE = '/localhost/upload-payment-file';
     const SAVE_CONTACT = '/localhost/create-contact-by-app';
-    const PAYMENTS_DATA = '/localhost/%s/payment-summary?XDEBUG_SESSION_START=PHPSTORM';
+    const PAYMENTS_DATA = '/localhost/%s/payment-summary';
+    const CLIENT_DATA = '/localhost/%s/%s/client-summary';
 
     private $baseUrl;
 
@@ -186,6 +187,31 @@ class ClientData
             'isvalid' => false,
             'message' => 'Ocurrio un error',
         ];
+    }
+
+    /**
+     * @param $clientId
+     * @param $clientGroupId
+     * @return array
+     */
+    public function getClientData($clientId, $clientGroupId)
+    {
+        if ($clientGroupId === null) {
+            $clientGroupId = 0;
+        }
+        if ($clientId === null) {
+            $clientId = 0;
+        }
+        $url = sprintf($this->baseUrl.self::CLIENT_DATA, $clientId, $clientGroupId);
+        /** Object Way **/
+        $client = new Client();
+        $response = $client->get($url);
+        if ($response) {
+            if ($response->getStatusCode() === 200) {
+                return json_decode($response->getBody()->getContents(), true);
+            }
+        }
+        return [];
     }
 
     /**

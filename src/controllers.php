@@ -122,7 +122,8 @@ $app->post('/api/current-account-data', function (Request $request) use ($app) {
                 }
             }
         }
-        $returnData = [];
+        //$found = true;
+        //$returnData = [];
         if ($found) {
             $returnData = $app['contableData']->returnCcte($folder, $month, $year);
             $response['success'] = true;
@@ -144,8 +145,7 @@ $app->post('/api/current-account-data', function (Request $request) use ($app) {
         $responseCode = Response::HTTP_BAD_REQUEST;
     }
     return $app->json($returnData, $responseCode);
-})
-    ->bind('current-account-data');
+})->bind('current-account-data');
 
 $app->get('/api/news', function (Request $request) use ($app) {
     $token = $app['security.token_storage']->getToken();

@@ -9,20 +9,22 @@ use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\Exception\UsernameNotFoundException;
 use Doctrine\DBAL\Connection;
 
+use Maith\Data\ClientData;
+
 class UserProvider implements UserProviderInterface
 {
     private $conn;
-    private $clientConn;
+    private $clientData;
 
     /**
      * UserProvider constructor.
      * @param Connection $conn
      * @param Connection $clientConn
      */
-    public function __construct(Connection $conn, Connection $clientConn)
+    public function __construct(Connection $conn, ClientData $clientData)
     {
         $this->conn = $conn;
-        $this->clientConn = $clientConn;
+        $this->clientData = $clientData;
     }
 
     /**
@@ -148,37 +150,17 @@ class UserProvider implements UserProviderInterface
             $accountsPermissions = $this->getPermissionOfUser($data['email'], 'accounts');
             $certificatesPermissions = $this->getPermissionOfUser($data['email'], 'certificates');
             $filesPermissions = $this->getPermissionOfUser($data['email'], 'files');
-            if(!empty($data['group_id']))
-            {
-                $sqlClientId = 'select id, folder_number, social_reason from ec_clients where id_group = ?';
-                $stmt = $this->clientConn->executeQuery($sqlClientId, array($data['group_id']));
-                foreach( $stmt->fetchAll() as $client) {
-                    $services = [
-                        'month-amount' => $this->checkClientInPermissionList($client['id'], $monthAmountPermissions),
-                        'current-account-data' => $this->checkClientInPermissionList($client['id'], $accountsPermissions),
-                        'files' => $this->checkClientInPermissionList($client['id'], $filesPermissions),
-                        'certificates' => $this->checkClientInPermissionList($client['id'], $certificatesPermissions),
+            $fullClientData = $this->clientData->getClientData($data['client_id'], $data['group_id']);
+            foreach ($fullClientData as $client) {
+                $services = [
+                    'month-amount' => $this->checkClientInPermissionList($client['id'], $monthAmountPermissions),
+                    'current-account-data' => $this->checkClientInPermissionList($client['id'], $accountsPermissions),
+                    'files' => $this->checkClientInPermissionList($client['id'], $filesPermissions),
+                    'certificates' => $this->checkClientInPermissionList($client['id'], $certificatesPermissions),
 
-                    ];
-                    $client['permissions'] = $services;
-                    $clientList[] = $client;
-                }
-            }
-            if(!empty($data['client_id']))
-            {
-                $sqlClientId = 'select id, folder_number, social_reason from ec_clients where id = ?';
-                $stmt = $this->clientConn->executeQuery($sqlClientId, array($data['client_id']));
-                $client = $stmt->fetch();
-                if(!empty($client)){
-                    $services = [
-                        'month-amount' => $this->checkClientInPermissionList($client['id'], $monthAmountPermissions),
-                        'current-account-data' => $this->checkClientInPermissionList($client['id'], $accountsPermissions),
-                        'files' => $this->checkClientInPermissionList($client['id'], $filesPermissions),
-                        'certificates' => $this->checkClientInPermissionList($client['id'], $certificatesPermissions),
-                    ];
-                    $client['permissions'] = $services;
-                    $clientList[] = $client;
-                }
+                ];
+                $client['permissions'] = $services;
+                $clientList[] = $client;
             }
             return $clientList;
         }catch(\Exception $e){
