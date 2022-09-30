@@ -164,30 +164,32 @@ class ContableData
                         $returnData['data']['Clientes'][$clientName] = ['Cuentas' => [], 'SubtotalCliente' => []];
                         if (isset ($clientData['Cuentas'])) {
                             foreach ($clientData['Cuentas'] as $cuentaType => $cuentaData) {
-                                $returnData['data']['Clientes'][$clientName]['Cuentas'][$cuentaType] = ['Movimientos' => [], 'SaldoInicial' => [], 'SaldoFinal' => []];
-                                if (isset ($clientData['Cuentas'][$cuentaType]['SaldoInicial'])) {
-                                    $returnData['data']['Clientes'][$clientName]['Cuentas'][$cuentaType]['SaldoInicial']['SaldoPesos'] = number_format($clientData['Cuentas'][$cuentaType]['SaldoInicial']['SaldoPesos'], 0, ',', '.');
-                                }
-                                if (isset ($clientData['Cuentas'][$cuentaType]['SaldoFinal'])) {
-                                    $returnData['data']['Clientes'][$clientName]['Cuentas'][$cuentaType]['SaldoFinal']['SaldoPesos'] = number_format($clientData['Cuentas'][$cuentaType]['SaldoFinal']['SaldoPesos'], 0, ',', '.');
-                                }
-                                if (isset ($clientData['Cuentas'][$cuentaType]['Movimientos'])) {
-                                    foreach ($clientData['Cuentas'][$cuentaType]['Movimientos'] as $movimientoData) {
-                                        $fecha = \DateTime::createFromFormat('M j Y', substr($movimientoData['FECHA'],0,11));
-                                        $showDocument = $this->parseDocumentName($movimientoData['Documento'], $cuentaType);
+                                if (substr_count($cuentaType, ' USD') == 0) {
+                                    $returnData['data']['Clientes'][$clientName]['Cuentas'][$cuentaType] = ['Movimientos' => [], 'SaldoInicial' => [], 'SaldoFinal' => []];
+                                    if (isset ($clientData['Cuentas'][$cuentaType]['SaldoInicial'])) {
+                                        $returnData['data']['Clientes'][$clientName]['Cuentas'][$cuentaType]['SaldoInicial']['SaldoPesos'] = number_format($clientData['Cuentas'][$cuentaType]['SaldoInicial']['SaldoPesos'], 0, ',', '.');
+                                    }
+                                    if (isset ($clientData['Cuentas'][$cuentaType]['SaldoFinal'])) {
+                                        $returnData['data']['Clientes'][$clientName]['Cuentas'][$cuentaType]['SaldoFinal']['SaldoPesos'] = number_format($clientData['Cuentas'][$cuentaType]['SaldoFinal']['SaldoPesos'], 0, ',', '.');
+                                    }
+                                    if (isset ($clientData['Cuentas'][$cuentaType]['Movimientos'])) {
+                                        foreach ($clientData['Cuentas'][$cuentaType]['Movimientos'] as $movimientoData) {
+                                            $fecha = \DateTime::createFromFormat('M j Y', substr($movimientoData['FECHA'],0,11));
+                                            $showDocument = $this->parseDocumentName($movimientoData['Documento'], $cuentaType);
 
 
-                                        $movimiento = [
-                                            'AcumuladoPesos' => number_format(round($movimientoData['AcumuladoPesos']), 0, ',', '.'),
-                                            'Cliente' => $movimientoData['Cliente'],
-                                            'Documento' => $showDocument,
-                                            'FECHA' => $fecha->format('d/m/y'),
-                                            'SaldoPesos' => number_format($movimientoData['SaldoPesos'], 0, ',', '.'),
-                                            'TipoCliente' => $movimientoData['TipoCliente'],
-                                            'TipoDoc' => $movimientoData['TipoDoc'],
-                                            'UnidadNegocios' => $movimientoData['UnidadNegocios'],
-                                        ];
-                                        $returnData['data']['Clientes'][$clientName]['Cuentas'][$cuentaType]['Movimientos'][] = $movimiento;
+                                            $movimiento = [
+                                                'AcumuladoPesos' => number_format(round($movimientoData['AcumuladoPesos']), 0, ',', '.'),
+                                                'Cliente' => $movimientoData['Cliente'],
+                                                'Documento' => $showDocument,
+                                                'FECHA' => $fecha->format('d/m/y'),
+                                                'SaldoPesos' => number_format($movimientoData['SaldoPesos'], 0, ',', '.'),
+                                                'TipoCliente' => $movimientoData['TipoCliente'],
+                                                'TipoDoc' => $movimientoData['TipoDoc'],
+                                                'UnidadNegocios' => $movimientoData['UnidadNegocios'],
+                                            ];
+                                            $returnData['data']['Clientes'][$clientName]['Cuentas'][$cuentaType]['Movimientos'][] = $movimiento;
+                                        }
                                     }
                                 }
                             }
