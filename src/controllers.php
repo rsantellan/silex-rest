@@ -672,7 +672,7 @@ $app->get('/api/get-public-available-tasks', function () use ($app) {
     $returnData = $app['contableData']->returnPublicAvailableTasks();
 
     return $app->json($returnData, Response::HTTP_OK);
-})->bind('get-client-expiration-data');
+})->bind('get-public-available-tasks');
 
 $app->post('/api/create-client-task', function (Request $request) use ($app) {
     $token = $app['security.token_storage']->getToken();
