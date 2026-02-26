@@ -3,6 +3,8 @@
 use Silex\Application;
 use Silex\Provider\ServiceControllerServiceProvider;
 use Silex\Provider\HttpFragmentServiceProvider;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 $app = new Application();
 $app->register(new ServiceControllerServiceProvider());
@@ -43,7 +45,7 @@ $app->register(new Silex\Provider\DoctrineServiceProvider(), array(
 ));
 
 $app['clientData'] = function () use ($app){
-    return new \Maith\Data\ClientData(URL_CONTABLE_BASE_URL);
+    return new \Maith\Data\ClientData(URL_CONTABLE_BASE_URL, CONTABLE_TOKEN);
 };
 
 $app['security.default_encoder'] = function ($app) {
@@ -64,7 +66,7 @@ $app['pushapi'] = function () use ($app){
 };
 
 $app['contableData'] = function () use ($app){
-    return new \Maith\Data\ContableData(URL_CONTABLE_PAYMENT, URL_CONTABLE_CCTE);
+    return new \Maith\Data\ContableData(URL_CONTABLE_BASE_URL, CONTABLE_TOKEN, URL_CONTABLE_PAYMENT, URL_CONTABLE_CCTE, URL_CONTABLE_ACCOUNT_PER_CLIENT, URL_CONTABLE_PAYMENT_MULTIPLE, URL_CONTABLE_CLIENT_RETRIEVE_EXPIRATIONS, URL_CONTABLE_RETRIEVE_PUBLIC_TASKS);
 };
 
 
@@ -85,5 +87,22 @@ $app['security.firewalls'] = array(
     ),
 );
 
+$app->before(function (Request $request) {
+    if ($request->getMethod() === 'OPTIONS') {
+        $response = new Response();
+        $response->setStatusCode(204);
 
+        $response->headers->set('Access-Control-Allow-Origin', '*');
+        $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+        return $response;
+    }
+}, Silex\Application::EARLY_EVENT);
+
+$app->after(function (Request $request, Response $response) {
+    $response->headers->set('Access-Control-Allow-Origin', '*');
+    $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+});
 return $app;

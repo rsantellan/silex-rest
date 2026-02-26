@@ -100,7 +100,13 @@ class JWTListener implements ListenerInterface {
         $token = $request->headers->get($this->options['header_name'], null);
         if (empty($token)) {
             $headerName = $this->options['header_name'];
-            $apacheHeaders = apache_request_headers();
+            //$apacheHeaders = apache_request_headers();
+            if (!function_exists('apache_request_headers')) {
+                $apacheHeaders = $this->my_apache_request_headers();
+            } else {
+                $apacheHeaders = apache_request_headers();
+            }
+
             foreach ($apacheHeaders as $apacheHeaderName => $apacheHeaderValue) {
                 if (strtolower($apacheHeaderName) === strtolower($headerName)) {
                     $token = $apacheHeaderValue;
@@ -108,6 +114,27 @@ class JWTListener implements ListenerInterface {
             }
         }
         return $token;
+    }
+
+    function my_apache_request_headers()
+    {
+        $arh = array();
+        $rx_http = '/\AHTTP_/';
+        foreach ($_SERVER as $key => $val) {
+            if (preg_match($rx_http, $key)) {
+                $arh_key = preg_replace($rx_http, '', $key);
+                $rx_matches = array();
+                // do some nasty string manipulations to restore the original letter case
+                // this should work in most cases
+                $rx_matches = explode('_', $arh_key);
+                if (count($rx_matches) > 0 and strlen($arh_key) > 2) {
+                    foreach ($rx_matches as $ak_key => $ak_val) $rx_matches[$ak_key] = ucfirst($ak_val);
+                    $arh_key = implode('-', $rx_matches);
+                }
+                $arh[$arh_key] = $val;
+            }
+        }
+        return ($arh);
     }
 
     /**

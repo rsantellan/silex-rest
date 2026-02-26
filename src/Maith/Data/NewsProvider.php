@@ -27,6 +27,8 @@ class NewsProvider
                 'id' => $row['id'],
                 'title' => $row['title'],
                 'content' => $row['title'] . ' ' . $row['content'],
+                'author' => $row['author'],
+                'date' => date("d-m-Y", strtotime($row['timestamp'])),
             ];
             $return[] = $data;
         }

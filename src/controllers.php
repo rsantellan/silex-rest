@@ -168,10 +168,14 @@ $app->post('/api/login', function (Request $request) use ($app) {
         if (empty($vars['_username']) || empty($vars['_password'])) {
             throw new UsernameNotFoundException(sprintf('Username "%s" does not exist.', $vars['_username']));
         }
+
+        $userData = $app['users']->loadUserByUsernameComplete($vars['_username']);
         /**
          * @var $user User
          */
-        $user = $app['users']->loadUserByUsername($vars['_username']);
+        $user = $userData['user'];
+        $dbData = $userData['data'];
+        $children = $userData['children'];
         if (!$app['security.default_encoder']->isPasswordValid($user->getPassword(), $vars['_password'], '')) {
             throw new UsernameNotFoundException(sprintf('Username "%s" does not exist 2.', $vars['_username']));
         } else {
@@ -180,6 +184,15 @@ $app->post('/api/login', function (Request $request) use ($app) {
                 'success' => true,
                 'error' => '',
                 'token' => $app['security.jwt.encoder']->encode(['name' => $user->getUsername()]),
+                'user' => [
+                    'username' => $dbData['username'],
+                    'group' => $dbData['group_id'],
+                    //'boss'  => $dbData['group_boss'],
+                    'superuser'  => $dbData['superuser'],
+                    'firstName'  => $dbData['first_name'],
+                    'lastName'  => $dbData['last_name'],
+                    'children' => $children,
+                ]
             ];
         }
     } catch (UsernameNotFoundException $e) {
@@ -514,37 +527,6 @@ $app->get('/send-data/{password}', function ($password) use ($app) {
             $clients = $app['users']->loadClientByUsername($email);
             $year = (int)date('Y');
             $month = (int)date('n');
-            /*
-            // Asumo CCTE
-            
-            $folders = [];
-            if(count($clients) > 0){
-                foreach($clients as $client){
-                    if($client['folder_number'] == $folder){
-                        $folders[] = $folder;
-                    }
-                }
-            }
-            
-            $returnList = [];
-            $sendMessage = false;
-            foreach($folders as $folder)
-            {
-                $oldFilesName = SAVE_DATA_FILES.'/'.sprintf('%s-%s-%s', $clientId,$month,$year);
-                $returnData = md5(serialize($app['contableData']->returnCcte($folder, $month, $year)));
-                $oldHash = file_get_contents($oldFilesName);
-                // Compare to a saved file.
-                if($oldHash === $returData){
-                    // do nothing
-                }else{
-                    // Send message
-                    $sendMessage = true;
-                    $users[$username] = $username;
-                    // Save again to file
-                    file_put_contents($oldFilesName, $returData);
-                }
-            }
-            */
             // Asumo Payments
             $clientId = null;
             if (count($clients) > 0) {
@@ -580,3 +562,222 @@ $app->get('/send-data/{password}', function ($password) use ($app) {
     }
     return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
 });
+
+$app->post('/api/retrieve-account-for-clients', function (Request $request) use ($app) {
+    $vars = json_decode($request->getContent(), true);
+    $clients = isset($vars['clients']) ? $vars['clients'] : [];
+    $month = isset($vars['month']) ? $vars['month'] : date('n');
+    $year = isset($vars['year']) ? $vars['year'] : date('Y');
+
+    $returnData = $app['contableData']->returnAccountsPerClients($clients, $month, $year);
+    $response = [
+        'success' => true,
+        'error' => '',
+        'data' => $returnData,
+    ];
+    return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+});
+$app->post('/api/retrieve-payments-for-clients', function (Request $request) use ($app) {
+    $vars = json_decode($request->getContent(), true);
+    $clients = isset($vars['clients']) ? $vars['clients'] : [];
+    $month = isset($vars['month']) ? $vars['month'] : date('n');
+    $year = isset($vars['year']) ? $vars['year'] : date('Y');
+
+    die('not implemented');
+    $returnData = $app['contableData']->returnAccountsPerClients($clients, $month, $year);
+    $response = [
+        'success' => true,
+        'error' => '',
+        'data' => $returnData,
+    ];
+    return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+});
+
+
+$app->post('/api/client-month-amount', function (Request $request) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    $year = null;
+    $month = null;
+    $clientId = null;
+    $vars = json_decode($request->getContent(), true);
+    if (!empty($vars['year'])) {
+        $year = $vars['year'];
+    }
+    if (!empty($vars['month'])) {
+        $month = $vars['month'];
+    }
+    if (!empty($vars['clientId'])) {
+        $clientId = $vars['clientId'];
+    }
+    $returnData = [];
+    if (empty($year) || empty($month) || empty($clientId)) {
+        $response = [
+            'success' => false,
+        ];
+        $returnData = ['message' => 'Bad params'];
+    } else {
+        $response = [
+            'success' => true,
+            'username' => $token->getUsername(),
+            'clients' => $app['users']->loadClientByUsername($token->getUsername()),
+            //'username' => $token->getUser()->getId(),
+            //'token' => $app['security.jwt.encoder']->encode(['name' => $user->getUsername()]),
+        ];
+
+
+        $returnData = $app['contableData']->returnPayments($clientId, $month, $year);
+        if ($returnData['isvalid']) {
+            $removeClientList = [];
+            $allClientList = [];
+            $permissionData = $app['users']->getPermissionOfUser($token->getUsername(), 'monthAmount');
+            foreach ($returnData['data'] as $clientId => $clientData) {
+                $allClientList[] = $clientId;
+                if (!in_array($clientId, $permissionData)) {
+                    $removeClientList[] = $clientId;
+                }
+            }
+            foreach ($removeClientList as $clientId) {
+                unset($returnData['data'][$clientId]);
+            }
+        }
+
+    }
+    return $app->json($returnData, ($response['success'] ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+})->bind('client-month-amount');
+
+$app->get('/api/get-client-expiration/{clientId}', function ($clientId) use ($app) {
+
+    $response = [
+        'success' => false,
+        'message' => '',
+    ];
+    $returnData = $app['contableData']->returnClientExpirations($clientId);
+    if ($returnData['isvalid']) {
+        $response['success'] = true;
+        $response['data'] = $returnData['data'];
+        $response['razon-social'] = $returnData['razonsocial'];
+    }
+
+    return $app->json($returnData, ($response['success'] ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+})->bind('get-client-expiration-data');
+
+
+$app->get('/api/get-public-available-tasks', function () use ($app) {
+
+    $response = [
+        'success' => true,
+        'message' => '',
+        'data' => $app['contableData']->returnPublicAvailableTasks()
+    ];
+    $returnData = $app['contableData']->returnPublicAvailableTasks();
+
+    return $app->json($returnData, Response::HTTP_OK);
+})->bind('get-client-expiration-data');
+
+$app->post('/api/create-client-task', function (Request $request) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    $folder = null;
+    $createdBy = null;
+    $taskId = null;
+    $vars = json_decode($request->getContent(), true);
+    if (!empty($vars['folder'])) {
+        $folder = $vars['folder'];
+    }
+    if (!empty($vars['createdBy'])) {
+        $createdBy = $vars['createdBy'];
+    }
+    if (!empty($vars['taskId'])) {
+        $taskId = $vars['taskId'];
+    }
+    if (empty($folder) || empty($createdBy) || empty($taskId)) {
+        $response = [
+            'success' => false,
+        ];
+        $returnData = ['message' => 'Bad params'];
+    } else {
+        $returnData = $app['contableData']->createPublicTask($folder, $createdBy, $taskId);
+        $response = ['success' => true];
+
+    }
+    return $app->json($returnData, ($response['success'] ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+})->bind('create-client-task');
+
+$app->post('/api/retrieve-user-created-client-task', function (Request $request) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    $all = null;
+    $user = null;
+    $vars = json_decode($request->getContent(), true);
+    if (array_key_exists('all', $vars)) {
+        $all = $vars['all'];
+    }
+    if (!empty($vars['user'])) {
+        $user = $vars['user'];
+    }
+    if ($all === null || empty($user)) {
+        $response = [
+            'success' => false,
+        ];
+        $returnData = ['message' => 'Bad params'];
+    } else {
+        $returnData = $app['contableData']->showUserPublicTask($all, $user);
+        $response = ['success' => true];
+
+    }
+    return $app->json($returnData, ($response['success'] ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+})->bind('retrieve-user-created-client-task');
+
+
+$app->get('/api/profile', function (Request $request) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    $returnData = $app['users']->retrieveUserProfile($token->getUsername());
+    return $app->json($returnData, Response::HTTP_OK);
+})->bind('user-profile');
+
+
+$app->post('/api/profile/update', function (Request $request) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    $response = [
+        'success' => false,
+    ];
+    $returnData = ['message' => 'Bad params'];
+    $vars = json_decode($request->getContent(), true);
+    $email = isset($vars['email']) ? $vars['email'] : null;
+    $firstName = isset($vars['firstName']) ? $vars['firstName'] : null;
+    $lastName = isset($vars['lastName']) ? $vars['lastName'] : null;
+    $username = isset($vars['username']) ? $vars['username'] : null;
+    if (!empty($email) && !empty($firstName) && !empty($lastName) && !empty($username)) {
+        $returnData['success'] = $app['users']->updateUserProfile($token->getUsername(), $email, $firstName, $lastName, $username);
+        $response['success'] = true;
+        $returnData['message'] = '';
+    }
+    return $app->json($returnData, ($response['success'] ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+})->bind('edit-profile');
+
+$app->post('/api/profile/change-password', function (Request $request) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    $response = [
+        'success' => false,
+    ];
+    $returnData = ['message' => 'Bad params'];
+    $vars = json_decode($request->getContent(), true);
+    $currentPassword = isset($vars['currentPassword']) ? $vars['currentPassword'] : null;
+    $newPassword = isset($vars['newPassword']) ? $vars['newPassword'] : null;
+
+
+    if (!empty($currentPassword) && !empty($newPassword)) {
+        $userData = $app['users']->loadUserByUsernameComplete($token->getUsername());
+        /**
+         * @var $user User
+         */
+        $user = $userData['user'];
+        if (!$app['security.default_encoder']->isPasswordValid($user->getPassword(), $currentPassword, '')) {
+            throw new \Exception('Current password is incorrect');
+        }
+        $returnData['success'] = $app['users']->updatePassword($token->getUsername(), $app['security.default_encoder']->encodePassword($newPassword, $user->getSalt()));
+        $response['success'] = true;
+        $returnData['message'] = '';
+    }
+    return $app->json($returnData, ($response['success'] ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+})->bind('edit-profile');
+
+

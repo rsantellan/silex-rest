@@ -19,15 +19,19 @@ class ClientData
     const PAYMENTS_DATA = '/localhost/%s/payment-summary';
     const CLIENT_DATA = '/localhost/%s/%s/client-summary';
 
+    const CLIENT_LIST_DATA = '/localhost/clients-data-list';
+
     private $baseUrl;
+    private $token;
 
     /**
      * ClientData constructor.
      * @param $baseUrl
      */
-    public function __construct($baseUrl)
+    public function __construct($baseUrl, $token)
     {
         $this->baseUrl = $baseUrl;
+        $this->token = $token;
     }
 
     /**
@@ -37,7 +41,12 @@ class ClientData
     {
         /** Object Way **/
         $client = new Client();
-        $response = $client->get($this->baseUrl.self::CONTACT_DATA);
+        //$response = $client->get($this->baseUrl.self::CONTACT_DATA);
+        $response = $client->get($this->baseUrl.self::CONTACT_DATA, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+        ]);
         if ($response) {
             if ($response->getStatusCode() === 200) {
                 return $this->parseGetContactInfoResponse(json_decode($response->getBody()->getContents(), true));
@@ -55,7 +64,12 @@ class ClientData
         $url = sprintf($this->baseUrl.self::FILES, $clientId);
         /** Object Way **/
         $client = new Client();
-        $response = $client->get($url);
+        //$response = $client->get($url);
+        $response = $client->get($url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+        ]);
         if ($response) {
             if ($response->getStatusCode() === 200) {
                 return $this->parseGetFilesResponse(json_decode($response->getBody()->getContents(), true));
@@ -69,7 +83,12 @@ class ClientData
         $url = sprintf($this->baseUrl.self::GET_FILE, $clientId, $id);
         /** Object Way **/
         $client = new Client();
-        $response = $client->get($url);
+        //$response = $client->get($url);
+        $response = $client->get($url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+        ]);
         if ($response) {
             if ($response->getStatusCode() === 200) {
                 $data = json_decode($response->getBody()->getContents(), true);
@@ -91,7 +110,12 @@ class ClientData
         $url = sprintf($this->baseUrl.self::DGI_QR, $clientId);
         /** Object Way **/
         $client = new Client();
-        $response = $client->get($url);
+        //$response = $client->get($url);
+        $response = $client->get($url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+        ]);
         if ($response) {
             if ($response->getStatusCode() === 200) {
                 return $this->parseGetDgiQrResponse(json_decode($response->getBody()->getContents(), true), $clientId, $debug);
@@ -113,7 +137,12 @@ class ClientData
         $url = sprintf($this->baseUrl.self::PAYMENTS_DATA, $clientId);
         /** Object Way **/
         $client = new Client();
-        $response = $client->get($url);
+        //$response = $client->get($url);
+        $response = $client->get($url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+        ]);
         if ($response) {
             if ($response->getStatusCode() === 200) {
                 return $this->parseGetCalendarPaymentDataResponse(json_decode($response->getBody()->getContents(), true));
@@ -140,7 +169,10 @@ class ClientData
                 'email' => $email,
                 'phone' => $phone,
                 'comment' => $comment,
-            ]
+            ],
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
         ]);
         if ($response) {
             if ($response->getStatusCode() === 200) {
@@ -177,6 +209,9 @@ class ClientData
         $client = new Client();
         $response = $client->post($url, [
             \GuzzleHttp\RequestOptions::JSON => $data,
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
         ]);
         if ($response) {
             if ($response->getStatusCode() === 200) {
@@ -205,7 +240,34 @@ class ClientData
         $url = sprintf($this->baseUrl.self::CLIENT_DATA, $clientId, $clientGroupId);
         /** Object Way **/
         $client = new Client();
-        $response = $client->get($url);
+        //$response = $client->get($url);
+        $response = $client->get($url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+        ]);
+        if ($response) {
+            if ($response->getStatusCode() === 200) {
+                return json_decode($response->getBody()->getContents(), true);
+            }
+        }
+        return [];
+    }
+
+    public function getClientDataByIdList($clientIdList)
+    {
+        $url = $this->baseUrl.self::CLIENT_LIST_DATA;
+        /** Object Way **/
+        $client = new Client();
+
+        $response = $client->post($url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+            \GuzzleHttp\RequestOptions::JSON => [
+                'clientIds' => $clientIdList,
+            ]
+        ]);
         if ($response) {
             if ($response->getStatusCode() === 200) {
                 return json_decode($response->getBody()->getContents(), true);
@@ -282,6 +344,29 @@ class ClientData
             return $response['html'];
         }
         return '';
+    }
+
+    public function retrieveGroupOrClientData($clientId, $groupId)
+    {
+        $url = $this->baseUrl.'/localhost/retrieve-client-or-group-data';
+        /** Object Way **/
+        $client = new Client();
+
+        $response = $client->post($url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+            \GuzzleHttp\RequestOptions::JSON => [
+                'clientId' => $clientId,
+                'groupId' => $groupId,
+            ]
+        ]);
+        if ($response) {
+            if ($response->getStatusCode() === 200) {
+                return json_decode($response->getBody()->getContents(), true);
+            }
+        }
+        return [];
     }
 
 }

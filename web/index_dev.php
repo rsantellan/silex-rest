@@ -1,5 +1,9 @@
 <?php
-
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+set_error_handler(function($severity, $message, $file, $line) {
+    throw new ErrorException($message, 0, $severity, $file, $line);
+});
 use Symfony\Component\Debug\Debug;
 
 // This check prevents access to debug front controllers that are deployed by accident to production servers.

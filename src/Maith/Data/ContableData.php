@@ -8,16 +8,36 @@ class ContableData
 {
     private $urlPayments;
     private $urlCcte;
+    private $urlAccountPerClient;
+    private $token;
+    private $urlPaymentByClients;
+    private $urlClientExpirations;
+    /**
+     * @var null
+     */
+    private $urlPublicAvailableTasks;
+    private $baseUrl;
 
     /**
      * ContableData constructor.
+     * @param $token
      * @param $urlPayments
      * @param $urlCcte
+     * @param $urlAccountPerClient
+     * @param $urlPaymentByClients
+     * @param $urlClientExpirations
+     * @param null $urlPublicAvailableTasks
      */
-    public function __construct($urlPayments, $urlCcte)
+    public function __construct($baseUrl, $token, $urlPayments, $urlCcte, $urlAccountPerClient, $urlPaymentByClients, $urlClientExpirations, $urlPublicAvailableTasks = null)
     {
         $this->urlPayments = $urlPayments;
         $this->urlCcte = $urlCcte;
+        $this->urlAccountPerClient = $urlAccountPerClient;
+        $this->token = $token;
+        $this->urlPaymentByClients = $urlPaymentByClients;
+        $this->urlClientExpirations = $urlClientExpirations;
+        $this->urlPublicAvailableTasks = $urlPublicAvailableTasks;
+        $this->baseUrl = $baseUrl;
     }
 
     /**
@@ -33,18 +53,20 @@ class ContableData
         //return $this->formatPayment($month, json_decode($this->testPayment(), true));
         /** Object Way **/
         $client = new Client();
-        $response = $client->get($url);
+        $response = $client->get($url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+        ]);
         if ($response) {
             return $this->formatPayment($month, json_decode($response->getBody()->getContents(), true));
         }
         return ['data' => []];
-        /** RAW WAY**/
-        // $string = file_get_contents($url);
-        // $returnData = json_decode($string);
     }
 
     private function formatPayment($month, $response)
     {
+        //var_dump($response);
         $month = (int) $month;
         $returnData = [];
         $months = [
@@ -133,14 +155,15 @@ class ContableData
         //return $this->formatCcteResponse(json_decode($this->testCcte(), true));
         /** Object Way **/
         $client = new Client();
-        $response = $client->get($url);
+        $response = $client->get($url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+        ]);
         if ($response) {
             return $this->formatCcteResponse(json_decode($response->getBody()->getContents(), true));
         }
         return [];
-        /** RAW WAY**/
-        $string = file_get_contents($url);
-        $returnData = json_decode($string);
     }
 
     /**
@@ -254,386 +277,134 @@ class ContableData
         return $showDocument;
     }
 
-    /**
-     * @return string
-     */
-    private function testPayment()
+    public function returnAccountsPerClients($clients, $month, $year)
     {
-        return '{
-    "data": {
-        "216": {
-            "calendar": {
-                "4196": {
-                    "id": 3,
-                    "month": 17,
-                    "name": "BPS Calendario Gen\u00e9rico",
-                    "payments": [
-                        {
-                            "amountWithTaxes": 478718,
-                            "createdat": "07/06/2019",
-                            "notconfirmed": true,
-                            "notes": "debe ademas IRPF de 4 meses mas sus multas y recargos",
-                            "notified": false,
-                            "notpayment": false,
-                            "paid": false,
-                            "reviewed": true,
-                            "taxes": [
-                                {
-                                    "amount": 478718,
-                                    "name": "BPS Aportes"
-                                }
-                            ],
-                            "updatedat": "07/06/2019",
-                            "whopays": 0
-                        }
-                    ],
-                    "review": true,
-                    "taxes": true
-                },
-                "4198": {
-                    "id": 16,
-                    "month": 24,
-                    "name": "DGI Cede",
-                    "payments": [],
-                    "review": false,
-                    "taxes": true
-                },
-                "4201": {
-                    "id": 56,
-                    "month": 30,
-                    "name": "BSE - Seguros Accidentes",
-                    "payments": [],
-                    "review": false,
-                    "taxes": true
-                },
-                "5373": {
-                    "id": 77,
-                    "month": 24,
-                    "name": "BPS WEB",
-                    "payments": [],
-                    "review": false,
-                    "taxes": true
-                },
-                "5643": {
-                    "id": 35,
-                    "month": 27,
-                    "name": "DGI Facilidades",
-                    "payments": [],
-                    "review": false,
-                    "taxes": true
-                },
-                "5694": {
-                    "id": 35,
-                    "month": 19,
-                    "name": "DGI Facilidades",
-                    "payments": [],
-                    "review": false,
-                    "taxes": true
+        $fullData = ['Clients' => []];
+        $totals = ['SaldoPesos' => 0, 'SaldoDolares' => 0];
+        foreach ($clients as $clientId) {
+            $data = $this->doCallClientAccountData($clientId, $month, $year);
+            if (array_key_exists('isvalid', $data) && $data['isvalid']) {
+                foreach ($data['data']['Clientes'] as $clientKey => $values) {
+                    if (array_key_exists('SaldoPesos', $values['SubtotalCliente'])) {
+                        $totals['SaldoPesos'] = $totals['SaldoPesos'] + $values['SubtotalCliente']['SaldoPesos'];
+                    }
+                    if (array_key_exists('SaldoPesos', $values['SubtotalCliente'])) {
+                        $totals['SaldoDolares'] = $totals['SaldoDolares'] + $values['SubtotalCliente']['SaldoDolares'];
+                    }
+                    $fullData['Clients'][$clientKey] = $values;
                 }
-            },
-            "client": {
-                "carpeta": "1370",
-                "id": 216,
-                "razonsocial": "TILSIT S.A."
-            }
-        },
-        "34": {
-            "calendar": {
-                "3919": {
-                    "id": 1,
-                    "month": 25,
-                    "name": "DGI Codeco",
-                    "payments": [],
-                    "review": false,
-                    "taxes": true
-                }
-            },
-            "client": {
-                "carpeta": "704",
-                "id": 34,
-                "razonsocial": "KAMIKI S.A."
-            }
-        },
-        "5": {
-            "calendar": {
-                "3898": {
-                    "id": 34,
-                    "month": 24,
-                    "name": "DGI IRPF e IRNR Cat.1 y 2",
-                    "payments": [],
-                    "review": false,
-                    "taxes": true
-                }
-            },
-            "client": {
-                "carpeta": "434",
-                "id": 5,
-                "razonsocial": "SAGASTUME CAVELLI Sonia Rene"
-            }
-        },
-        "518": {
-            "calendar": {
-                "4720": {
-                    "id": 3,
-                    "month": 17,
-                    "name": "BPS Calendario Gen\u00e9rico",
-                    "payments": [
-                        {
-                            "amountWithTaxes": 114035,
-                            "createdat": "05/06/2019",
-                            "notconfirmed": true,
-                            "notes": null,
-                            "notified": true,
-                            "notpayment": false,
-                            "paid": false,
-                            "reviewed": true,
-                            "taxes": [
-                                {
-                                    "amount": 114035,
-                                    "name": "BPS Aportes"
-                                }
-                            ],
-                            "updatedat": "05/06/2019",
-                            "whopays": 0
-                        }
-                    ],
-                    "review": true,
-                    "taxes": true
-                },
-                "4727": {
-                    "id": 50,
-                    "month": 30,
-                    "name": "CJPPU - Caja Profesional",
-                    "payments": [],
-                    "review": false,
-                    "taxes": true
-                },
-                "4729": {
-                    "id": 59,
-                    "month": 24,
-                    "name": "BPS - Fonasa Serv. Personales",
-                    "payments": [],
-                    "review": false,
-                    "taxes": true
-                },
-                "5310": {
-                    "id": 52,
-                    "month": 24,
-                    "name": "BPS Servicio Dom\u00e9stico",
-                    "payments": [],
-                    "review": false,
-                    "taxes": true
-                },
-                "5336": {
-                    "id": 56,
-                    "month": 30,
-                    "name": "BSE - Seguros Accidentes",
-                    "payments": [],
-                    "review": false,
-                    "taxes": true
-                },
-                "5687": {
-                    "id": 1,
-                    "month": 25,
-                    "name": "DGI Codeco",
-                    "payments": [],
-                    "review": false,
-                    "taxes": true
-                }
-            },
-            "client": {
-                "carpeta": "3003",
-                "id": 518,
-                "razonsocial": "DE LEON SAGASTUME RICARDO"
-            }
-        },
-        "738": {
-            "calendar": {
-                "5635": {
-                    "id": 1,
-                    "month": 25,
-                    "name": "DGI Codeco",
-                    "payments": [],
-                    "review": false,
-                    "taxes": true
-                },
-                "5645": {
-                    "id": 3,
-                    "month": 17,
-                    "name": "BPS Calendario Gen\u00e9rico",
-                    "payments": [],
-                    "review": false,
-                    "taxes": true
-                }
-            },
-            "client": {
-                "carpeta": "1883",
-                "id": 738,
-                "razonsocial": "ORGANICO.UY SRL"
             }
         }
-    },
-    "isvalid": true
-}
-';
+        $fullData['totals'] = $totals;
+        return $fullData;
     }
 
-    /**
-     * @return string
-     */
-    private function testCcte()
+    private function doCallClientAccountData($clientId, $month, $year)
     {
-        return '{
-    "data": {
-        "Clientes": {
-            "0101883 - ORGANICO.UY  S.R.L.": {
-                "Cuentas": {
-                    "02 - Impuestos y Gastos": {
-                        "Movimientos": [
-                            {
-                                "AcumuladoDolares": 309.34,
-                                "AcumuladoPesos": -2498.1300006001,
-                                "Cliente": "0101883 - ORGANICO.UY  S.R.L.",
-                                "Documento": "Pago de Terceros 000000054938 - Pago a Terceros : VARIOS por CLIENTE - Santander Cuota 18 - Santander Cuota 18",
-                                "FECHA": "Jul  4 2019 12:00:00:000AM",
-                                "SaldoDolares": 782.27,
-                                "SaldoPesos": 0,
-                                "TipoCliente": "De Leon Ricardo",
-                                "TipoDoc": "02 - Impuestos y Gastos",
-                                "UnidadNegocios": "Maldonado"
-                            },
-                            {
-                                "AcumuladoDolares": 309.34,
-                                "AcumuladoPesos": -6.0012553149136e-07,
-                                "Cliente": "0101883 - ORGANICO.UY  S.R.L.",
-                                "Documento": "Pago de Terceros 000000055149 - Pago a Terceros : VARIOS por CLIENTE - cbio ps a dls - cbio ps a dls",
-                                "FECHA": "Jul  4 2019 12:00:00:000AM",
-                                "SaldoDolares": 0,
-                                "SaldoPesos": 2498.13,
-                                "TipoCliente": "De Leon Ricardo",
-                                "TipoDoc": "02 - Impuestos y Gastos",
-                                "UnidadNegocios": "Maldonado"
-                            },
-                            {
-                                "AcumuladoDolares": 238,
-                                "AcumuladoPesos": -6.0012553149136e-07,
-                                "Cliente": "0101883 - ORGANICO.UY  S.R.L.",
-                                "Documento": "Recibos de Cobranza 000200530221 - R.G.: 000500011041 - Obs.: cbio ps a dls - R.G.: 000500011041 - Obs.: cbio ps a dls",
-                                "FECHA": "Jul  4 2019 12:00:00:000AM",
-                                "SaldoDolares": -71.34,
-                                "SaldoPesos": 0,
-                                "TipoCliente": "De Leon Ricardo",
-                                "TipoDoc": "02 - Impuestos y Gastos",
-                                "UnidadNegocios": "Maldonado"
-                            },
-                            {
-                                "AcumuladoDolares": 238,
-                                "AcumuladoPesos": -16296.0000006,
-                                "Cliente": "0101883 - ORGANICO.UY  S.R.L.",
-                                "Documento": "Recibos de Cobranza 000200530217 - R.G.: 000500011037 - Obs.: transf. brou - R.G.: 000500011037 - Obs.: transf. brou",
-                                "FECHA": "Jul 24 2019 12:00:00:000AM",
-                                "SaldoDolares": 0,
-                                "SaldoPesos": -16296,
-                                "TipoCliente": "De Leon Ricardo",
-                                "TipoDoc": "02 - Impuestos y Gastos",
-                                "UnidadNegocios": "Maldonado"
-                            },
-                            {
-                                "AcumuladoDolares": 238,
-                                "AcumuladoPesos": -6.0012462199666e-07,
-                                "Cliente": "0101883 - ORGANICO.UY  S.R.L.",
-                                "Documento": "Pago de Terceros 000000055147 - Pago a Terceros : VARIOS por CLIENTE - GSoft - GSoft",
-                                "FECHA": "Jul 24 2019 12:00:00:000AM",
-                                "SaldoDolares": 0,
-                                "SaldoPesos": 16296,
-                                "TipoCliente": "De Leon Ricardo",
-                                "TipoDoc": "02 - Impuestos y Gastos",
-                                "UnidadNegocios": "Maldonado"
-                            },
-                            {
-                                "AcumuladoDolares": 238,
-                                "AcumuladoPesos": -5900.0000006001,
-                                "Cliente": "0101883 - ORGANICO.UY  S.R.L.",
-                                "Documento": "Recibos de Cobranza 000200530220 - R.G.: 000500011040 - Obs.: transf. brou - R.G.: 000500011040 - Obs.: transf. brou",
-                                "FECHA": "Jul 24 2019 12:00:00:000AM",
-                                "SaldoDolares": 0,
-                                "SaldoPesos": -5900,
-                                "TipoCliente": "De Leon Ricardo",
-                                "TipoDoc": "02 - Impuestos y Gastos",
-                                "UnidadNegocios": "Maldonado"
-                            },
-                            {
-                                "AcumuladoDolares": 238,
-                                "AcumuladoPesos": -6.0012462199666e-07,
-                                "Cliente": "0101883 - ORGANICO.UY  S.R.L.",
-                                "Documento": "Pago de Terceros 000000055148 - Pago a Terceros : VARIOS por CLIENTE - New Age Data - New Age Data",
-                                "FECHA": "Jul 24 2019 12:00:00:000AM",
-                                "SaldoDolares": 0,
-                                "SaldoPesos": 5900,
-                                "TipoCliente": "De Leon Ricardo",
-                                "TipoDoc": "02 - Impuestos y Gastos",
-                                "UnidadNegocios": "Maldonado"
-                            },
-                            {
-                                "AcumuladoDolares": -762,
-                                "AcumuladoPesos": -6.0012462199666e-07,
-                                "Cliente": "0101883 - ORGANICO.UY  S.R.L.",
-                                "Documento": "Recibos de Cobranza 000200530317 - R.G.: 000500011115 - Obs.: deposito 23 - R.G.: 000500011115 - Obs.: deposito 23",
-                                "FECHA": "Aug 12 2019 12:00:00:000AM",
-                                "SaldoDolares": -1000,
-                                "SaldoPesos": 0,
-                                "TipoCliente": "De Leon Ricardo",
-                                "TipoDoc": "02 - Impuestos y Gastos",
-                                "UnidadNegocios": "Maldonado"
-                            },
-                            {
-                                "AcumuladoDolares": -762,
-                                "AcumuladoPesos": 2146.9999993999,
-                                "Cliente": "0101883 - ORGANICO.UY  S.R.L.",
-                                "Documento": "Pago de Terceros 000000055472 - Pago a Terceros : DGI -  - ",
-                                "FECHA": "Aug 26 2019 12:00:00:000AM",
-                                "SaldoDolares": 0,
-                                "SaldoPesos": 2147,
-                                "TipoCliente": "De Leon Ricardo",
-                                "TipoDoc": "02 - Impuestos y Gastos",
-                                "UnidadNegocios": "Maldonado"
-                            }
-                        ],
-                        "SaldoFinal": {
-                            "SaldoDolares": -762,
-                            "SaldoPesos": 2146.9999993999
-                        },
-                        "SaldoInicial": {
-                            "SaldoDolares": -472.93,
-                            "SaldoPesos": -2498.1300006001
-                        }
-                    },
-                    "04 - Pendientes": {
-                        "Movimientos": [],
-                        "SaldoFinal": {
-                            "SaldoDolares": 0,
-                            "SaldoPesos": 0
-                        },
-                        "SaldoInicial": {
-                            "SaldoDolares": 0,
-                            "SaldoPesos": 0
-                        }
-                    }
-                },
-                "SubtotalCliente": {
-                    "SaldoDolares": -762,
-                    "SaldoPesos": 2146.9999993999
-                }
-            }
-        },
-        "Grupo": "Totales",
-        "TotalGrupo": {
-            "SaldoDolares": -762,
-            "SaldoPesos": 2146.9999993999
+        $url = sprintf($this->urlAccountPerClient, $clientId, $month, $year);
+        //var_dump($url);
+        /** Object Way **/
+        $client = new Client();
+        $response = $client->get($url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+        ]);
+        return json_decode($response->getBody()->getContents(), true);
+    }
+
+
+    public function returnPaymentsPerClients($clients, $month, $year)
+    {
+        $url = $this->urlPaymentByClients;
+        /** Object Way **/
+        $client = new Client();
+        $response = $client->post($url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+            \GuzzleHttp\RequestOptions::JSON => [
+                'clientIds' => $clients,
+                'month' => $month,
+                'year' => $year,
+            ]
+        ]);
+        if ($response) {
+            //$data = json_decode($response->getBody()->getContents(), true);
+            return $this->formatPayment($month, json_decode($response->getBody()->getContents(), true));
         }
-    },
-    "isvalid": true
-}
-';
+        return ['data' => []];
+    }
+
+    public function returnClientExpirations($clientId)
+    {
+        $url = sprintf($this->urlClientExpirations, $clientId);
+        /** Object Way **/
+        $client = new Client();
+        $response = $client->get($url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+        ]);
+        if ($response) {
+            return json_decode($response->getBody()->getContents(), true);
+        }
+        return [];
+    }
+
+
+    public function returnPublicAvailableTasks()
+    {
+        $url = $this->urlPublicAvailableTasks;
+        /** Object Way **/
+        $client = new Client();
+        $response = $client->get($url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+        ]);
+        if ($response) {
+            return json_decode($response->getBody()->getContents(), true);
+        }
+        return [];
+    }
+
+    public function createPublicTask($folder, $createdBy, $taskId)
+    {
+        $url = sprintf($this->baseUrl. '/public/tasks/%s/create-to-client', $taskId);
+        /** Object Way **/
+        $client = new Client();
+        $response = $client->post($url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+            \GuzzleHttp\RequestOptions::JSON => [
+                'folder' => $folder,
+                'createdBy' => $createdBy,
+            ]
+        ]);
+        if ($response) {
+            return json_decode($response->getBody()->getContents(), true);
+        }
+        return ['data' => []];
+    }
+    public function showUserPublicTask($all, $user)
+    {
+        $url = $this->baseUrl. '/public/tasks/retrieve-created-tasks';
+        /** Object Way **/
+        $client = new Client();
+        $response = $client->post($url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+            \GuzzleHttp\RequestOptions::JSON => [
+                'all' => $all,
+                'user' => $user,
+            ]
+        ]);
+        if ($response) {
+            return json_decode($response->getBody()->getContents(), true);
+        }
+        return ['data' => []];
     }
 }
