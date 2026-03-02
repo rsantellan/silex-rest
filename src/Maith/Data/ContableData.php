@@ -2,6 +2,7 @@
 
 namespace Maith\Data;
 
+use Doctrine\DBAL\Connection;
 use GuzzleHttp\Client;
 
 class ContableData
@@ -17,9 +18,15 @@ class ContableData
      */
     private $urlPublicAvailableTasks;
     private $baseUrl;
+    /**
+     * @var Connection
+     */
+    private $conn;
 
     /**
      * ContableData constructor.
+     * @param Connection $conn
+     * @param $baseUrl
      * @param $token
      * @param $urlPayments
      * @param $urlCcte
@@ -28,7 +35,7 @@ class ContableData
      * @param $urlClientExpirations
      * @param null $urlPublicAvailableTasks
      */
-    public function __construct($baseUrl, $token, $urlPayments, $urlCcte, $urlAccountPerClient, $urlPaymentByClients, $urlClientExpirations, $urlPublicAvailableTasks = null)
+    public function __construct(Connection $conn, $baseUrl, $token, $urlPayments, $urlCcte, $urlAccountPerClient, $urlPaymentByClients, $urlClientExpirations, $urlPublicAvailableTasks = null)
     {
         $this->urlPayments = $urlPayments;
         $this->urlCcte = $urlCcte;
@@ -38,6 +45,7 @@ class ContableData
         $this->urlClientExpirations = $urlClientExpirations;
         $this->urlPublicAvailableTasks = $urlPublicAvailableTasks;
         $this->baseUrl = $baseUrl;
+        $this->conn = $conn;
     }
 
     /**
@@ -406,5 +414,18 @@ class ContableData
             return json_decode($response->getBody()->getContents(), true);
         }
         return ['data' => []];
+    }
+
+    public function retrieveAllGroups()
+    {
+        $sql = 'select id, name, code from ec_client_groups order by name';
+        $stmt = $this->conn->executeQuery($sql, []);
+        return $stmt->fetchAll();
+    }
+    public function retrieveAlClients()
+    {
+        $sql = 'select c.id, c.social_reason, c.folder_number, g.id as groupId, g.name as groupName, g.code as groupCode from ec_clients c left outer join ec_client_groups g on g.id = c.id_group order by c.social_reason';
+        $stmt = $this->conn->executeQuery($sql, []);
+        return $stmt->fetchAll();
     }
 }

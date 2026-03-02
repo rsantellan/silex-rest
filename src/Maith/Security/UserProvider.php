@@ -67,6 +67,16 @@ class UserProvider implements UserProviderInterface
         return $user;
     }
 
+    public function loadDbUserById($id) {
+        $sql = 'select u.id, u.username, u.password, u.email, u.status, u.superuser, u.group_id, u.group_boss, u.client_id, u.create_at, u.lastvisit_at, p.first_name, p.last_name from tbl_users u left join tbl_profiles p on p.user_id = u.id where ';
+        $sql .= 'u.id = ?';
+        $stmt = $this->conn->executeQuery($sql, array($id));
+        if (!$user = $stmt->fetch()) {
+            throw new UsernameNotFoundException(sprintf('Id "%s" does not exist.', $id));
+        }
+        return $user;
+    }
+
     /**
      * @param int $parentId
      * @return array
@@ -279,6 +289,24 @@ class UserProvider implements UserProviderInterface
         return [];
     }
 
+
+    /**
+     * @param $email
+     * @param $section
+     * @return array|mixed
+     * @throws \Doctrine\DBAL\DBALException
+     */
+    public function getPermissionOfUserById($userId, $section)
+    {
+        $sql = "select data from AuthAssignment where itemname = ? and userid = ?";
+        $stmt = $this->conn->executeQuery($sql, [$section, $userId]);
+        $data = $stmt->fetch();
+        if (!empty($data['data'])) {
+            return unserialize($data['data']);
+        }
+        return [];
+    }
+
     /**
      * @param $folder
      * @return array|mixed[]
@@ -323,6 +351,16 @@ class UserProvider implements UserProviderInterface
     public function retrieveUserProfile($username)
     {
         $dbUser = $this->loadDbUser($username);
+        return $this->returnUserProfileByData($dbUser);
+    }
+    public function retrieveUserProfileById($id)
+    {
+        $dbUser = $this->loadDbUserById($id);
+        return $this->returnUserProfileByData($dbUser);
+    }
+
+    private function returnUserProfileByData($dbUser)
+    {
         $clientAndGroup = $this->clientData->retrieveGroupOrClientData($dbUser['client_id'], $dbUser['group_id']);
         return [
             'username' => $dbUser['username'],
@@ -338,12 +376,16 @@ class UserProvider implements UserProviderInterface
 
     public function updateUserProfile($oldUser, $email, $firstName, $lastName, $username)
     {
-        $dbUser = $this->loadDbUser($username);
-        // $sql = 'select u.id, u.username, u.password, u.email, u.status, u.superuser, u.group_id, u.group_boss, u.client_id, u.create_at, u.lastvisit_at, p.first_name, p.last_name from tbl_users u left join tbl_profiles p on p.user_id = u.id where ';
+        $dbUser = $this->loadDbUser($oldUser);
+        return $this->updateUserProfileById($dbUser['id'], $email, $firstName, $lastName, $username);
+    }
+
+    public function updateUserProfileById($id, $email, $firstName, $lastName, $username)
+    {
         $sqlUpdateProfile = 'update tbl_profiles set first_name = ?, last_name = ? where user_id = ?';
-        $this->conn->executeUpdate($sqlUpdateProfile, array($firstName, $lastName, $dbUser['id']));
+        $this->conn->executeUpdate($sqlUpdateProfile, array($firstName, $lastName, $id));
         $sqlUpdate = 'update tbl_users set username = ?, email = ? where id = ?';
-        $this->conn->executeUpdate($sqlUpdate, array($username, $email, $dbUser['id']));
+        $this->conn->executeUpdate($sqlUpdate, array($username, $email, $id));
         return true;
     }
 
@@ -354,4 +396,246 @@ class UserProvider implements UserProviderInterface
         return true;
     }
 
+    public function getUserList($search, $limit = 10, $offset = 0)
+    {
+        $where = ' where u.username like :username or u.email like :email or p.first_name like :firstName or p.last_name like :lastName';
+        $sql = 'select u.id, u.username, u.email, u.status, u.superuser, u.group_id, u.group_boss, u.client_id, u.create_at, u.lastvisit_at, p.first_name, p.last_name from tbl_users u left join tbl_profiles p on p.user_id = u.id';
+        if (!empty($search)) {
+            $sql .= $where;
+        }
+        $sql.= ' order by u.id asc LIMIT :limit OFFSET :offset';
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue('limit', (int) $limit, \PDO::PARAM_INT);
+        $stmt->bindValue('offset', (int) $offset, \PDO::PARAM_INT);
+        if (!empty($search)) {
+            $stmt->bindValue('username', $search, \PDO::PARAM_STR);
+            $stmt->bindValue('email', $search, \PDO::PARAM_STR);
+            $stmt->bindValue('firstName', $search, \PDO::PARAM_STR);
+            $stmt->bindValue('lastName', $search, \PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        $users = $stmt->fetchAll();
+        $sqlCount = 'select count(u.id) as qty from tbl_users u left join tbl_profiles p on p.user_id = u.id';
+        if (!empty($search)) {
+            $sqlCount .= $where;
+        }
+        $stmtQuantity = $this->conn->prepare($sqlCount);
+        if (!empty($search)) {
+            $stmtQuantity->bindValue('username', $search, \PDO::PARAM_STR);
+            $stmtQuantity->bindValue('email', $search, \PDO::PARAM_STR);
+            $stmtQuantity->bindValue('firstName', $search, \PDO::PARAM_STR);
+            $stmtQuantity->bindValue('lastName', $search, \PDO::PARAM_STR);
+        }
+        $stmtQuantity->execute();
+        $quantity = 0;
+        $quantityRow = $stmtQuantity->fetch();
+        $quantity = $quantityRow['qty'];
+        return ['users' => $users, 'quantity' => $quantity];
+    }
+
+    public function doDeleteUserById($id)
+    {
+        $sqlDeleteAuth = 'delete from AuthAssignment where userid = ?';
+        $quantity = $this->conn->executeUpdate($sqlDeleteAuth, array($id));
+        $sqlDeleteProfile = 'delete from tbl_profiles where user_id = ?';
+        $quantity = $this->conn->executeUpdate($sqlDeleteProfile, array($id));
+        $sqlDelete = 'delete from tbl_users where id = ?';
+        $quantity = $this->conn->executeUpdate($sqlDelete, array($id));
+        return $quantity === 1;
+    }
+
+    public function createNewUser($username, $firstName, $lastName, $email, $password, $status, $groupId, $clientId, $groupBoss)
+    {
+        $sql = 'insert into tbl_users (id, username, password, email, activkey, superuser, status, group_boss, group_id, create_at, lastvisit_at, client_id) values (null, :username, :password, :email, :activkey, 0, :status, :groupBoss, :groupId, NOW(), null, :clientId)';
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue('username', $username, \PDO::PARAM_STR);
+        $stmt->bindValue('password', md5($password), \PDO::PARAM_STR);
+        $stmt->bindValue('email', $email, \PDO::PARAM_STR);
+        $stmt->bindValue('activkey', md5($password.time()), \PDO::PARAM_STR);
+        $stmt->bindValue('status', $status, \PDO::PARAM_INT);
+        $stmt->bindValue('groupBoss', $groupBoss, \PDO::PARAM_INT);
+        $stmt->bindValue('groupId', $groupId, \PDO::PARAM_INT);
+        $stmt->bindValue('clientId', $clientId, \PDO::PARAM_INT);
+        $stmt->execute();
+        $newUserId = $this->conn->lastInsertId();
+        if (empty($newUserId)) {
+            throw new \Exception('Error creating the user');
+        }
+        $sqlProfile = 'insert into tbl_profiles (user_id, first_name, last_name) values (:userId, :firstName, :lastName)';
+        $stmtProfile = $this->conn->prepare($sqlProfile);
+        $stmtProfile->bindValue('userId', $newUserId, \PDO::PARAM_INT);
+        $stmtProfile->bindValue('firstName', $firstName, \PDO::PARAM_STR);
+        $stmtProfile->bindValue('lastName', $lastName, \PDO::PARAM_STR);
+        $stmtProfile->execute();
+        return $newUserId;
+    }
+
+    public function getAllPermissionTypes()
+    {
+        $sql = "select name, description from AuthItem where type = 0";
+        $stmt = $this->conn->executeQuery($sql);
+        return $stmt->fetchAll();
+    }
+
+    public function retrieveAllUserPermissions($id)
+    {
+        $permissionsTypes = $this->getAllPermissionTypes();
+        $sql = "select itemname, data from AuthAssignment where userid = ?";
+        $stmt = $this->conn->executeQuery($sql, array($id));
+        $dbData = $stmt->fetchAll();
+        $return = [];
+        foreach ($permissionsTypes as $permissionType) {
+            $data = [];
+            foreach ($dbData as $datum) {
+                if ($datum['itemname'] == $permissionType['name']) {
+                    if (!empty($datum['data'])) {
+                        $aux = unserialize($datum['data']);
+                        foreach ($aux as $clientId => $clientFolder) {
+                            $data[] = [
+                                'id' => $clientId,
+                                'folder' => $clientFolder,
+                            ];
+                        }
+                    }
+                }
+            }
+            $return[] = [
+                'type' => $permissionType['name'],
+                'data' => $data
+            ];
+        }
+        return $return;
+    }
+
+    public function addPermissionToUser($userId, $folder, $type)
+    {
+        $userPermission = $this->getPermissionOfUserById($userId, $type);
+        if (empty($userPermission) || !is_array($userPermission)) {
+            $userPermission = [];
+        }
+        if (!in_array($folder, $userPermission)) {
+            $userPermission[] = $folder;
+            $this->updateUserPermission($userId, $type, $userPermission);
+        }
+        return $userPermission;
+    }
+    public function removePermissionOfUser($userId, $folder, $type)
+    {
+        $userPermission = $this->getPermissionOfUserById($userId, $type);
+        if (empty($userPermission) || !is_array($userPermission)) {
+            $userPermission = [];
+        }
+        if (in_array($folder, $userPermission)) {
+            $userPermission = array_filter($userPermission, function($value) use ($folder) {
+                return $value != $folder;
+            });
+            $this->updateUserPermission($userId, $type, $userPermission);
+        }
+        return $userPermission;
+    }
+
+    private function updateUserPermission($userId, $type, $userPermission)
+    {
+        $sqlUpdate = 'update AuthAssignment set data = ? where userid = ? and itemname = ?';
+        $this->conn->executeUpdate($sqlUpdate, [serialize($userPermission), $userId, $type]);
+    }
+
+
+    public function getUserPermissionsList($search, $limit = 10, $offset = 0)
+    {
+        $where = ' where u.username like :username';
+        $sqlCount = 'SELECT COUNT(*) FROM tbl_users u';
+        if (!empty($search)) {
+            $sqlCount .= $where;
+        }
+        $stmt = $this->conn->prepare($sqlCount);
+        if (!empty($search)) {
+            $stmt->bindValue('username', $search, \PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        $total = $stmt->fetchColumn();
+
+        $sqlUserRows = 'SELECT u.id, u.username FROM tbl_users u';
+        if (!empty($search)) {
+            $sqlUserRows .= $where;
+        }
+        $sqlUserRows.= ' order by u.id asc LIMIT :limit OFFSET :offset';
+        $stmt = $this->conn->prepare($sqlUserRows);
+        $stmt->bindValue('limit', (int) $limit, \PDO::PARAM_INT);
+        $stmt->bindValue('offset', (int) $offset, \PDO::PARAM_INT);
+        if (!empty($search)) {
+            $stmt->bindValue('username', $search, \PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        $usersRows = $stmt->fetchAll();
+        if (!$usersRows) {
+            return [
+                'data' => [],
+                'pagination' => [
+                    'page' => $offset,
+                    'limit' => $limit,
+                    'total' => (int) $total,
+                ],
+            ];
+        }
+        $userIds = array_column($usersRows, 'id');
+        $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+        $permissionsRows = $this->conn->fetchAll(
+            "SELECT 
+            aa.userid AS user_id,
+            ai.name AS type,
+            ai.type AS permission_type,
+            ai.description
+         FROM AuthAssignment aa
+         INNER JOIN AuthItem ai ON ai.name = aa.itemname
+         WHERE aa.userid IN ($placeholders)",
+            $userIds,
+            array_fill(0, count($userIds), \PDO::PARAM_INT)
+        );
+        $users = [];
+
+        // Initialize users
+        foreach ($usersRows as $row) {
+            $users[$row['id']] = [
+                'id' => (int) $row['id'],
+                'username' => $row['username'],
+                'permissions' => [],
+            ];
+        }
+
+        // Attach permissions
+        foreach ($permissionsRows as $row) {
+            $userId = $row['user_id'];
+
+            $users[$userId]['permissions'][$row['type']] = [
+                'type' => $row['type'],
+                'description' => $this->retrieveNameOfPermissionType($row['permission_type']), // 👈 UI name
+                'name' => $row['description'],
+            ];
+        }
+
+        // Normalize arrays
+        foreach ($users as &$user) {
+            $user['permissions'] = array_values($user['permissions']);
+        }
+        return [
+            'data' => array_values($users),
+            'pagination' => [
+                'page' => $offset,
+                'limit' => $limit,
+                'total' => (int) $total,
+            ],
+        ];
+    }
+
+    private function retrieveNameOfPermissionType($type) {
+        switch ($type) {
+            case 2:
+                return "Rol";
+                break;
+            default:
+                return "Operacion";
+                break;
+        }
+    }
 }

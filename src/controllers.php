@@ -780,4 +780,260 @@ $app->post('/api/profile/change-password', function (Request $request) use ($app
     return $app->json($returnData, ($response['success'] ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
 })->bind('edit-profile');
 
+$app->post('/api/admin/users', function (Request $request) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    $response = [
+        'success' => false
+    ];
+    $returnData = ['message' => 'No permissions', 'data' => []];
+    $vars = json_decode($request->getContent(), true);
+    $page = isset($vars['page']) ? (int)$vars['page'] : 1;
+    $limit = isset($vars['limit']) ? (int)$vars['limit'] : 20;
+    $search = isset($vars['search']) ? $vars['search'] : null;
 
+    $userData = $app['users']->loadDbUser($token->getUsername());
+    if ((int)$userData['superuser'] !== 1) {
+        return $app->json($returnData, Response::HTTP_BAD_REQUEST);
+    }
+    if ($page < 1) {
+        $page = 1;
+    }
+    if (!empty($search)) {
+        $search = '%'.$search.'%';
+    }
+    $offset = ($page - 1) * $limit;
+    $returnData['data'] = $app['users']->getUserList($search, $limit, $offset);
+    $response['success'] = true;
+    $returnData['message'] = '';
+
+    return $app->json($returnData, ($response['success'] ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+})->bind('admin-list-users');
+
+
+$app->get('/api/admin/profile/{id}', function (Request $request, $id) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    $userData = $app['users']->loadDbUser($token->getUsername());
+    $returnData = ['message' => 'No permissions', 'data' => []];
+    if ((int)$userData['superuser'] !== 1) {
+        return $app->json($returnData, Response::HTTP_BAD_REQUEST);
+    }
+    $returnData = $app['users']->retrieveUserProfileById($id);
+    return $app->json($returnData, Response::HTTP_OK);
+})->bind('admin-user-profile');
+
+
+$app->post('/api/admin/profile-update/{id}', function (Request $request, $id) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    $userData = $app['users']->loadDbUser($token->getUsername());
+    $returnData = ['message' => 'No permissions', 'data' => []];
+    if ((int)$userData['superuser'] !== 1) {
+        return $app->json($returnData, Response::HTTP_BAD_REQUEST);
+    }
+    $response = [
+        'success' => false,
+    ];
+    $returnData = ['message' => 'Bad params'];
+    $vars = json_decode($request->getContent(), true);
+    $email = isset($vars['email']) ? $vars['email'] : null;
+    $firstName = isset($vars['firstName']) ? $vars['firstName'] : null;
+    $lastName = isset($vars['lastName']) ? $vars['lastName'] : null;
+    $username = isset($vars['username']) ? $vars['username'] : null;
+    if (!empty($email) && !empty($firstName) && !empty($lastName) && !empty($username)) {
+        $returnData['success'] = $app['users']->updateUserProfileById($id, $email, $firstName, $lastName, $username);
+        $response['success'] = true;
+        $returnData['message'] = '';
+    }
+    return $app->json($returnData, ($response['success'] ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+})->bind('admin-edit-profile');
+
+$app->delete('/api/admin/profile/{id}', function (Request $request, $id) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    $userData = $app['users']->loadDbUser($token->getUsername());
+    $returnData = ['message' => 'No permissions', 'data' => []];
+    if ((int)$userData['superuser'] !== 1) {
+        return $app->json($returnData, Response::HTTP_BAD_REQUEST);
+    }
+    $returnData['message'] = '';
+    $returnData['success'] = $app['users']->doDeleteUserById($id);
+    return $app->json($returnData, Response::HTTP_OK);
+})->bind('admin-user-remove');
+
+$app->get('/api/admin/get-groups', function (Request $request) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    $userData = $app['users']->loadDbUser($token->getUsername());
+
+    if ((int)$userData['superuser'] !== 1) {
+        $returnData = ['message' => 'No permissions', 'data' => []];
+        return $app->json($returnData, Response::HTTP_BAD_REQUEST);
+    }
+    $returnData = $app['contableData']->retrieveAllGroups();
+
+    return $app->json($returnData, Response::HTTP_OK);
+})->bind('admin-get-groups');
+
+$app->get('/api/admin/get-clients', function (Request $request) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    $userData = $app['users']->loadDbUser($token->getUsername());
+
+    if ((int)$userData['superuser'] !== 1) {
+        $returnData = ['message' => 'No permissions', 'data' => []];
+        return $app->json($returnData, Response::HTTP_BAD_REQUEST);
+    }
+    $returnData = $app['contableData']->retrieveAlClients();
+
+    return $app->json($returnData, Response::HTTP_OK);
+})->bind('admin-get-clients');
+
+$app->post('/api/admin/profile-create-user', function (Request $request) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    $userData = $app['users']->loadDbUser($token->getUsername());
+    $returnData = ['message' => 'No permissions', 'data' => []];
+    if ((int)$userData['superuser'] !== 1) {
+        return $app->json($returnData, Response::HTTP_BAD_REQUEST);
+    }
+    $response = [
+        'success' => false,
+    ];
+    $returnData = ['message' => 'Bad params'];
+    $vars = json_decode($request->getContent(), true);
+
+    $email = isset($vars['email']) ? $vars['email'] : null;
+    $firstName = isset($vars['firstName']) ? $vars['firstName'] : null;
+    $lastName = isset($vars['lastName']) ? $vars['lastName'] : null;
+    $username = isset($vars['username']) ? $vars['username'] : null;
+    $status = isset($vars['status']) ? $vars['status'] : 1;
+    $password = isset($vars['password']) ? $vars['password'] : null;
+    $groupId = isset($vars['group_id']) ? $vars['group_id'] : null;
+    $clientId = isset($vars['client_id']) ? $vars['client_id'] : null;
+
+    //var_dump($vars);
+    if (!empty($password) && !empty($email) && !empty($firstName) && !empty($lastName) && !empty($username)) {
+        try {
+            $returnData['newUser'] = $app['users']->createNewUser($username, $firstName, $lastName, $email, $password, $status, $groupId, $clientId, $userData['id']);
+            $response['success'] = true;
+            $returnData['message'] = '';
+            $returnData['success'] = true;
+        } catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException $e) {
+            $returnData = ['message' => 'Datos duplicados'];
+        }
+
+    }
+    return $app->json($returnData, ($response['success'] ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+})->bind('admin-create-user');
+
+$app->get('/api/admin/get-permission-types', function (Request $request) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    $userData = $app['users']->loadDbUser($token->getUsername());
+
+    if ((int)$userData['superuser'] !== 1) {
+        $returnData = ['message' => 'No permissions', 'data' => []];
+        return $app->json($returnData, Response::HTTP_BAD_REQUEST);
+    }
+    $returnData = $app['users']->getAllPermissionTypes();
+
+    return $app->json($returnData, Response::HTTP_OK);
+})->bind('admin-get-permission-types');
+
+$app->get('/api/admin/profile/permissions/{id}', function (Request $request, $id) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    $userData = $app['users']->loadDbUser($token->getUsername());
+    $returnData = ['message' => 'No permissions', 'data' => []];
+    if ((int)$userData['superuser'] !== 1) {
+        return $app->json($returnData, Response::HTTP_BAD_REQUEST);
+    }
+    $returnData['message'] = '';
+    $returnData['data'] = $app['users']->retrieveAllUserPermissions($id);
+    $returnData['success'] = true;
+    return $app->json($returnData, Response::HTTP_OK);
+})->bind('admin-user-profile-permissions');
+
+
+$app->post('/api/admin/profile/permission/assign', function (Request $request) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    $userData = $app['users']->loadDbUser($token->getUsername());
+    $returnData = ['message' => 'No permissions', 'data' => []];
+    if ((int)$userData['superuser'] !== 1) {
+        return $app->json($returnData, Response::HTTP_BAD_REQUEST);
+    }
+    $response = [
+        'success' => false,
+    ];
+    $returnData = ['message' => 'Bad params'];
+    $vars = json_decode($request->getContent(), true);
+
+    $folder = isset($vars['folder']) ? $vars['folder'] : null;
+    $type = isset($vars['type']) ? $vars['type'] : null;
+    $userId = isset($vars['userId']) ? $vars['userId'] : null;
+
+    //var_dump($vars);
+    if (!empty($folder) && !empty($type) && !empty($userId)) {
+        try {
+            $returnData['permissions'] = $app['users']->addPermissionToUser($userId, $folder, $type);
+            $response['success'] = true;
+            $returnData['message'] = '';
+            $returnData['success'] = true;
+        } catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException $e) {
+            $returnData = ['message' => 'Datos duplicados'];
+        }
+
+    }
+    return $app->json($returnData, ($response['success'] ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+})->bind('admin-user-permission-assign');
+
+$app->post('/api/admin/profile/permission/remove', function (Request $request) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    $userData = $app['users']->loadDbUser($token->getUsername());
+    $returnData = ['message' => 'No permissions', 'data' => []];
+    if ((int)$userData['superuser'] !== 1) {
+        return $app->json($returnData, Response::HTTP_BAD_REQUEST);
+    }
+    $response = [
+        'success' => false,
+    ];
+    $returnData = ['message' => 'Bad params'];
+    $vars = json_decode($request->getContent(), true);
+
+    $folder = isset($vars['folder']) ? $vars['folder'] : null;
+    $type = isset($vars['type']) ? $vars['type'] : null;
+    $userId = isset($vars['userId']) ? $vars['userId'] : null;
+
+    //var_dump($vars);
+    if (!empty($folder) && !empty($type) && !empty($userId)) {
+        try {
+            $returnData['permissions'] = $app['users']->removePermissionOfUser($userId, $folder, $type);
+            $response['success'] = true;
+            $returnData['message'] = '';
+            $returnData['success'] = true;
+        } catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException $e) {
+            $returnData = ['message' => 'Datos duplicados'];
+        }
+
+    }
+    return $app->json($returnData, ($response['success'] ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+})->bind('admin-user-permission-remove-assign');
+
+$app->post('/api/admin/users-with-permissions', function (Request $request) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    $response = [
+        'success' => false
+    ];
+    $returnData = ['message' => 'No permissions', 'data' => []];
+    $vars = json_decode($request->getContent(), true);
+    $page = max(1, isset($vars['page']) ? (int)$vars['page'] : 1);
+    $limit = min(50, isset($vars['perPage']) ? (int)$vars['perPage'] : 20);
+    $search = isset($vars['search']) ? $vars['search'] : null;
+
+    $userData = $app['users']->loadDbUser($token->getUsername());
+    if ((int)$userData['superuser'] !== 1) {
+        return $app->json($returnData, Response::HTTP_BAD_REQUEST);
+    }
+    if ($page < 1) {
+        $page = 1;
+    }
+    if (!empty($search)) {
+        $search = '%'.$search.'%';
+    }
+    $offset = ($page - 1) * $limit;
+    $returnData = $app['users']->getUserPermissionsList($search, $limit, $offset);
+    return $app->json($returnData, Response::HTTP_OK);
+})->bind('admin-list-users-with-permissions');
