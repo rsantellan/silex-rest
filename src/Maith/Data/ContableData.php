@@ -422,10 +422,22 @@ class ContableData
         $stmt = $this->conn->executeQuery($sql, []);
         return $stmt->fetchAll();
     }
-    public function retrieveAlClients()
+    public function retrieveAlClients($groupId = null, $clientId = null)
     {
-        $sql = 'select c.id, c.social_reason, c.folder_number, g.id as groupId, g.name as groupName, g.code as groupCode from ec_clients c left outer join ec_client_groups g on g.id = c.id_group order by c.social_reason';
-        $stmt = $this->conn->executeQuery($sql, []);
+        $params = [];
+        $where = '';
+        if ($groupId) {
+            $params = [$groupId];
+            $where = ' where g.id = ?';
+        } else {
+            if ($clientId) {
+                $params = [$clientId];
+                $where = ' where c.id = ?';
+            }
+        }
+
+        $sql = sprintf('select c.id, c.social_reason, c.folder_number, g.id as groupId, g.name as groupName, g.code as groupCode from ec_clients c left outer join ec_client_groups g on g.id = c.id_group %s order by c.social_reason', $where);
+        $stmt = $this->conn->executeQuery($sql, $params);
         return $stmt->fetchAll();
     }
 }

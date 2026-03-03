@@ -371,6 +371,7 @@ class UserProvider implements UserProviderInterface
             'startingDate' => $dbUser['create_at'],
             'lastVisit' => $dbUser['lastvisit_at'],
             'status' => ($dbUser['status'] == 0 ? 'Inactivo' : 'Activo'),
+            'group_boss' => $dbUser['group_boss'],
         ];
     }
 
@@ -396,12 +397,90 @@ class UserProvider implements UserProviderInterface
         return true;
     }
 
-    public function getUserList($search, $limit = 10, $offset = 0)
+    public function getUserList($search, $limit = 10, $offset = 0, $bossId = null)
     {
-        $where = ' where u.username like :username or u.email like :email or p.first_name like :firstName or p.last_name like :lastName';
-        $sql = 'select u.id, u.username, u.email, u.status, u.superuser, u.group_id, u.group_boss, u.client_id, u.create_at, u.lastvisit_at, p.first_name, p.last_name from tbl_users u left join tbl_profiles p on p.user_id = u.id';
+        $params = array();
+        $conditions = array();
+
+        // ================= WHERE BUILDING =================
+
         if (!empty($search)) {
-            $sql .= $where;
+            $conditions[] = '(u.username LIKE :search OR u.email LIKE :search OR p.first_name LIKE :search OR p.last_name LIKE :search)';
+            $params['search'] = $search;
+        }
+
+        if (!empty($bossId)) {
+            $conditions[] = 'u.group_boss = :bossId';
+            $params['bossId'] = (int) $bossId;
+        }
+
+        $whereSql = '';
+        if (!empty($conditions)) {
+            $whereSql = ' WHERE ' . implode(' AND ', $conditions);
+        }
+        // ================= MAIN QUERY =================
+
+        $sql = '
+            SELECT 
+                u.id, u.username, u.email, u.status, u.superuser,
+                u.group_id, u.group_boss, u.client_id,
+                u.create_at, u.lastvisit_at,
+                p.first_name, p.last_name
+            FROM tbl_users u
+            LEFT JOIN tbl_profiles p ON p.user_id = u.id
+            ' . $whereSql . '
+            ORDER BY u.id ASC
+            LIMIT :limit OFFSET :offset
+        ';
+
+        $stmt = $this->conn->prepare($sql);
+
+        // Bind dynamic params
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR);
+        }
+
+        // Bind pagination
+        $stmt->bindValue('limit', (int) $limit, \PDO::PARAM_INT);
+        $stmt->bindValue('offset', (int) $offset, \PDO::PARAM_INT);
+
+        $stmt->execute();
+        $users = $stmt->fetchAll();
+        // ================= COUNT QUERY =================
+
+        $sqlCount = '
+            SELECT COUNT(u.id) as qty
+            FROM tbl_users u
+            LEFT JOIN tbl_profiles p ON p.user_id = u.id
+            ' . $whereSql;
+
+        $stmtCount = $this->conn->prepare($sqlCount);
+
+        foreach ($params as $key => $value) {
+            $stmtCount->bindValue($key, $value, is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR);
+        }
+
+        $stmtCount->execute();
+        $quantity = (int) $stmtCount->fetchColumn();
+
+        return array(
+            'users' => $users,
+            'quantity' => $quantity
+        );
+
+        $bossWhere = ' u.group_boss = :bossId';
+        $where = ' u.username like :username or u.email like :email or p.first_name like :firstName or p.last_name like :lastName';
+        $sql = 'select u.id, u.username, u.email, u.status, u.superuser, u.group_id, u.group_boss, u.client_id, u.create_at, u.lastvisit_at, p.first_name, p.last_name from tbl_users u left join tbl_profiles p on p.user_id = u.id';
+        if (!empty($search) || !empty($bossId)) {
+            if (!empty($search) && !empty($bossId)) {
+                $sql .= " where " . $bossWhere ." and " . $where;
+            } else {
+                if (!empty($search)) {
+                    $sql .= " where " . $where;
+                } else {
+                    $sql .= " where " . $where;
+                }
+            }
         }
         $sql.= ' order by u.id asc LIMIT :limit OFFSET :offset';
         $stmt = $this->conn->prepare($sql);
@@ -413,11 +492,22 @@ class UserProvider implements UserProviderInterface
             $stmt->bindValue('firstName', $search, \PDO::PARAM_STR);
             $stmt->bindValue('lastName', $search, \PDO::PARAM_STR);
         }
+        if (!empty($bossId)) {
+            $stmt->bindValue('bossId', (int) $bossId, \PDO::PARAM_INT);
+        }
         $stmt->execute();
         $users = $stmt->fetchAll();
         $sqlCount = 'select count(u.id) as qty from tbl_users u left join tbl_profiles p on p.user_id = u.id';
-        if (!empty($search)) {
-            $sqlCount .= $where;
+        if (!empty($search) || !empty($bossId)) {
+            if (!empty($search) && !empty($bossId)) {
+                $sqlCount .= " where " . $bossWhere ." and " . $where;
+            } else {
+                if (!empty($search)) {
+                    $sqlCount .= " where " . $where;
+                } else {
+                    $sqlCount .= " where " . $where;
+                }
+            }
         }
         $stmtQuantity = $this->conn->prepare($sqlCount);
         if (!empty($search)) {
@@ -425,6 +515,9 @@ class UserProvider implements UserProviderInterface
             $stmtQuantity->bindValue('email', $search, \PDO::PARAM_STR);
             $stmtQuantity->bindValue('firstName', $search, \PDO::PARAM_STR);
             $stmtQuantity->bindValue('lastName', $search, \PDO::PARAM_STR);
+        }
+        if (!empty($bossId)) {
+            $stmt->bindValue('bossId', (int) $bossId, \PDO::PARAM_INT);
         }
         $stmtQuantity->execute();
         $quantity = 0;
@@ -541,31 +634,41 @@ class UserProvider implements UserProviderInterface
     }
 
 
-    public function getUserPermissionsList($search, $limit = 10, $offset = 0)
+    public function getUserPermissionsList($search, $limit = 10, $offset = 0, $groupBoss = null)
     {
-        $where = ' where u.username like :username';
-        $sqlCount = 'SELECT COUNT(*) FROM tbl_users u';
+        $conditions = [];
+        $params = [];
+        // Search
         if (!empty($search)) {
-            $sqlCount .= $where;
+            $conditions[] = 'u.username LIKE :username';
+            $params['username'] = $search;
         }
+        // Group boss
+        if (!empty($groupBoss)) {
+            $conditions[] = 'u.group_boss = :groupBoss';
+            $params['groupBoss'] = (int) $groupBoss;
+        }
+        $whereSql = '';
+        if (!empty($conditions)) {
+            $whereSql = ' WHERE ' . implode(' AND ', $conditions);
+        }
+        // ================= COUNT =================
+        $sqlCount = 'SELECT COUNT(*) FROM tbl_users u' . $whereSql;
         $stmt = $this->conn->prepare($sqlCount);
-        if (!empty($search)) {
-            $stmt->bindValue('username', $search, \PDO::PARAM_STR);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR);
         }
         $stmt->execute();
         $total = $stmt->fetchColumn();
-
-        $sqlUserRows = 'SELECT u.id, u.username FROM tbl_users u';
-        if (!empty($search)) {
-            $sqlUserRows .= $where;
-        }
-        $sqlUserRows.= ' order by u.id asc LIMIT :limit OFFSET :offset';
+        // ================= USERS =================
+        $sqlUserRows = 'SELECT u.id, u.username FROM tbl_users u' . $whereSql;
+        $sqlUserRows .= ' ORDER BY u.id ASC LIMIT :limit OFFSET :offset';
         $stmt = $this->conn->prepare($sqlUserRows);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR);
+        }
         $stmt->bindValue('limit', (int) $limit, \PDO::PARAM_INT);
         $stmt->bindValue('offset', (int) $offset, \PDO::PARAM_INT);
-        if (!empty($search)) {
-            $stmt->bindValue('username', $search, \PDO::PARAM_STR);
-        }
         $stmt->execute();
         $usersRows = $stmt->fetchAll();
         if (!$usersRows) {
@@ -578,6 +681,7 @@ class UserProvider implements UserProviderInterface
                 ],
             ];
         }
+        // ================= PERMISSIONS =================
         $userIds = array_column($usersRows, 'id');
         $placeholders = implode(',', array_fill(0, count($userIds), '?'));
         $permissionsRows = $this->conn->fetchAll(
@@ -592,9 +696,8 @@ class UserProvider implements UserProviderInterface
             $userIds,
             array_fill(0, count($userIds), \PDO::PARAM_INT)
         );
+        // ================= BUILD RESPONSE =================
         $users = [];
-
-        // Initialize users
         foreach ($usersRows as $row) {
             $users[$row['id']] = [
                 'id' => (int) $row['id'],
@@ -602,19 +705,15 @@ class UserProvider implements UserProviderInterface
                 'permissions' => [],
             ];
         }
-
-        // Attach permissions
         foreach ($permissionsRows as $row) {
             $userId = $row['user_id'];
 
             $users[$userId]['permissions'][$row['type']] = [
                 'type' => $row['type'],
-                'description' => $this->retrieveNameOfPermissionType($row['permission_type']), // 👈 UI name
+                'description' => $this->retrieveNameOfPermissionType($row['permission_type']),
                 'name' => $row['description'],
             ];
         }
-
-        // Normalize arrays
         foreach ($users as &$user) {
             $user['permissions'] = array_values($user['permissions']);
         }
@@ -637,5 +736,58 @@ class UserProvider implements UserProviderInterface
                 return "Operacion";
                 break;
         }
+    }
+
+    public function retrieveAllClientPermissions($folder)
+    {
+        $sql = 'SELECT 
+                  u.id,
+                  u.username,
+                  ai.name AS type,
+                  ai.type AS permission_type,
+                  ai.description,
+                  aa.data
+                FROM AuthAssignment aa
+                INNER JOIN tbl_users u ON u.id = aa.userid
+                INNER JOIN AuthItem ai ON ai.name = aa.itemname
+                WHERE aa.data like :folder
+                ORDER BY u.username';
+        $rows = $this->conn->fetchAll($sql, ['folder' => '%'.$folder.'%']);
+        $users = [];
+
+        foreach ($rows as $row) {
+            $found = false;
+            $dbData = $row['data'];
+            if ($dbData) {
+                $data = unserialize($dbData);
+                if (is_array($data) && in_array($folder, $data)) {
+                    $found = true;
+                }
+            }
+            if ($found) {
+                $userId = $row['id'];
+
+                if (!isset($users[$userId])) {
+                    $users[$userId] = [
+                        'id' => $userId,
+                        'username' => $row['username'],
+                        'permissions' => [],
+                    ];
+                }
+
+                $users[$userId]['permissions'][$row['type']] = [
+                    'type' => $row['type'],
+                    'description' => $this->retrieveNameOfPermissionType($row['permission_type']), // 👈 UI name
+                    'name' => $row['description'],
+                ];
+            }
+
+        }
+
+        foreach ($users as &$u) {
+            $u['permissions'] = array_values($u['permissions']);
+        }
+
+        return array_values($users);
     }
 }
