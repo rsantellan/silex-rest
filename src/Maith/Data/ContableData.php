@@ -377,7 +377,24 @@ class ContableData
         return [];
     }
 
-    public function createPublicTask($folder, $createdBy, $taskId)
+    /**
+     * @param $id
+     * @param $fileId
+     * @return \Psr\Http\Message\ResponseInterface
+     */
+    public function retrieveTaskFile($id, $fileId)
+    {
+        $url = $this->baseUrl . sprintf('/public/tasks/%s/%s/retrieve-created-task-file', $id, $fileId);
+        $client = new Client();
+        return $client->get($url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+            'stream' => true
+        ]);
+    }
+
+    public function createPublicTask($folder, $createdBy, $taskId, $comment)
     {
         $url = sprintf($this->baseUrl. '/public/tasks/%s/create-to-client', $taskId);
         /** Object Way **/
@@ -389,6 +406,7 @@ class ContableData
             \GuzzleHttp\RequestOptions::JSON => [
                 'folder' => $folder,
                 'createdBy' => $createdBy,
+                'comment' => $comment
             ]
         ]);
         if ($response) {
@@ -439,5 +457,25 @@ class ContableData
         $sql = sprintf('select c.id, c.social_reason, c.folder_number, g.id as groupId, g.name as groupName, g.code as groupCode from ec_clients c left outer join ec_client_groups g on g.id = c.id_group %s order by c.social_reason', $where);
         $stmt = $this->conn->executeQuery($sql, $params);
         return $stmt->fetchAll();
+    }
+
+    public function addCommentToTask($createdBy, $taskId, $comment)
+    {
+        $url = sprintf($this->baseUrl. '/public/tasks/%s/add-comment-to-task', $taskId);
+        /** Object Way **/
+        $client = new Client();
+        $response = $client->post($url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+            \GuzzleHttp\RequestOptions::JSON => [
+                'user' => $createdBy,
+                'comment' => $comment
+            ]
+        ]);
+        if ($response) {
+            return json_decode($response->getBody()->getContents(), true);
+        }
+        return ['data' => []];
     }
 }

@@ -4,6 +4,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 use Symfony\Component\Security\Core\Exception\UsernameNotFoundException;
@@ -679,6 +680,7 @@ $app->post('/api/create-client-task', function (Request $request) use ($app) {
     $folder = null;
     $createdBy = null;
     $taskId = null;
+    $comment = '';
     $vars = json_decode($request->getContent(), true);
     if (!empty($vars['folder'])) {
         $folder = $vars['folder'];
@@ -689,13 +691,16 @@ $app->post('/api/create-client-task', function (Request $request) use ($app) {
     if (!empty($vars['taskId'])) {
         $taskId = $vars['taskId'];
     }
+    if (!empty($vars['comment'])) {
+        $comment = $vars['comment'];
+    }
     if (empty($folder) || empty($createdBy) || empty($taskId)) {
         $response = [
             'success' => false,
         ];
         $returnData = ['message' => 'Bad params'];
     } else {
-        $returnData = $app['contableData']->createPublicTask($folder, $createdBy, $taskId);
+        $returnData = $app['contableData']->createPublicTask($folder, $createdBy, $taskId, $comment);
         $response = ['success' => true];
 
     }
@@ -1265,3 +1270,67 @@ $app->post('/api/admin/boss-profile-create-user', function (Request $request) us
         }
     );
 })->bind('boss-create-user');
+
+$app->get('/api/{id}/{fileId}/get-public-task-file', function (Request $request, $id, $fileId) use ($app) {
+    $remoteResponse = $app['contableData']->retrieveTaskFile($id, $fileId);
+    if ($remoteResponse->getStatusCode() === 404) {
+        return new Response('File not found', 404);
+    }
+
+    if ($remoteResponse->getStatusCode() !== 200) {
+        return new Response('Error retrieving file', 500);
+    }
+
+    $body = $remoteResponse->getBody();
+
+    $response = new StreamedResponse(function () use ($body) {
+        while (!$body->eof()) {
+            echo $body->read(1024);
+        }
+    });
+    // propagate headers
+    $response->headers->set(
+        'Content-Type',
+        $remoteResponse->getHeaderLine('Content-Type')
+    );
+
+    $response->headers->set(
+        'Content-Disposition',
+        $remoteResponse->getHeaderLine('Content-Disposition')
+    );
+    foreach (['Content-Type','Content-Length','Content-Disposition'] as $header) {
+        if ($remoteResponse->hasHeader($header)) {
+            $response->headers->set($header, $remoteResponse->getHeaderLine($header));
+        }
+    }
+    return $response;
+})->bind('get-public-task-file');
+
+
+$app->post('/api/add-comment-to-task', function (Request $request) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    $createdBy = null;
+    $taskId = null;
+    $comment = '';
+    $vars = json_decode($request->getContent(), true);
+    if (!empty($vars['createdBy'])) {
+        $createdBy = $vars['createdBy'];
+    }
+    if (!empty($vars['taskId'])) {
+        $taskId = $vars['taskId'];
+    }
+    if (!empty($vars['comment'])) {
+        $comment = $vars['comment'];
+    }
+    if (empty($comment) || empty($createdBy) || empty($taskId)) {
+        $response = [
+            'success' => false,
+        ];
+        $returnData = ['message' => 'Bad params'];
+    } else {
+        $returnData = $app['contableData']->addCommentToTask($createdBy, $taskId, $comment);
+        $response = ['success' => true];
+
+    }
+    return $app->json($returnData, ($response['success'] ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
+})->bind('add-comment-to-task');
