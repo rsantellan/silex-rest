@@ -51,28 +51,15 @@ $app->post('/api/month-amount', function (Request $request) use ($app) {
             //'username' => $token->getUser()->getId(),
             //'token' => $app['security.jwt.encoder']->encode(['name' => $user->getUsername()]),
         ];
-        $clientId = null;
-        if (count($response['clients']) > 0) {
-            $first = array_pop($response['clients']);
-            $clientId = $first['id'];
-        }
-
-        if ($clientId) {
-            $returnData = $app['contableData']->returnPayments($clientId, $month, $year);
-            if ($returnData['isvalid']) {
-                $removeClientList = [];
-                $allClientList = [];
-                $permissionData = $app['users']->getPermissionOfUser($token->getUsername(), 'monthAmount');
-                foreach ($returnData['data'] as $clientId => $clientData) {
-                    $allClientList[] = $clientId;
-                    if (!in_array($clientId, $permissionData)) {
-                        $removeClientList[] = $clientId;
-                    }
-                }
-                foreach ($removeClientList as $clientId) {
-                    unset($returnData['data'][$clientId]);
-                }
+        $sendClients = [];
+        foreach($response['clients'] as $client) {
+            if ($client['permissions']['month-amount']) {
+                $sendClients[] = $client['id'];
             }
+
+        }
+        if (count($sendClients) > 0) {
+            $returnData = $app['contableData']->returnPaymentsByClients($sendClients, $month, $year);
         }
     }
     return $app->json($returnData, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
@@ -624,24 +611,16 @@ $app->post('/api/client-month-amount', function (Request $request) use ($app) {
             //'username' => $token->getUser()->getId(),
             //'token' => $app['security.jwt.encoder']->encode(['name' => $user->getUsername()]),
         ];
-
-
-        $returnData = $app['contableData']->returnPayments($clientId, $month, $year);
-        if ($returnData['isvalid']) {
-            $removeClientList = [];
-            $allClientList = [];
-            $permissionData = $app['users']->getPermissionOfUser($token->getUsername(), 'monthAmount');
-            foreach ($returnData['data'] as $clientId => $clientData) {
-                $allClientList[] = $clientId;
-                if (!in_array($clientId, $permissionData)) {
-                    $removeClientList[] = $clientId;
-                }
+        $isAllowed = false;
+        foreach($response['clients'] as $client) {
+            if ($client['permissions']['month-amount']) {
+                $isAllowed = true;
             }
-            foreach ($removeClientList as $clientId) {
-                unset($returnData['data'][$clientId]);
-            }
+
         }
-
+        if ($isAllowed) {
+            $returnData = $app['contableData']->returnPaymentsByClients([$clientId], $month, $year);
+        }
     }
     return $app->json($returnData, ($response['success'] ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
 })->bind('client-month-amount');

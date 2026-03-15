@@ -57,9 +57,6 @@ class ContableData
     public function returnPayments($clientId, $month, $year)
     {
         $url = sprintf($this->urlPayments, $clientId, $month, $year);
-        // This is for testing
-        //return $this->formatPayment($month, json_decode($this->testPayment(), true));
-        /** Object Way **/
         $client = new Client();
         $response = $client->get($url, [
             'headers' => [
@@ -68,6 +65,27 @@ class ContableData
         ]);
         if ($response) {
             return $this->formatPayment($month, json_decode($response->getBody()->getContents(), true));
+        }
+        return ['data' => []];
+    }
+
+    public function returnPaymentsByClients($clients, $month, $year)
+    {
+        $url = $this->baseUrl. '/localhost/payments-per-clients';
+        /** Object Way **/
+        $client = new Client();
+        $response = $client->post($url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+            \GuzzleHttp\RequestOptions::JSON => [
+                'clients' => $clients,
+                'month' => $month,
+                'year' => $year,
+            ]
+        ]);
+        if ($response) {
+            return json_decode($response->getBody()->getContents(), true);
         }
         return ['data' => []];
     }
