@@ -56,7 +56,6 @@ $app->post('/api/month-amount', function (Request $request) use ($app) {
             if ($client['permissions']['month-amount']) {
                 $sendClients[] = $client['id'];
             }
-
         }
         if (count($sendClients) > 0) {
             $returnData = $app['contableData']->returnPaymentsByClients($sendClients, $month, $year);
@@ -134,6 +133,70 @@ $app->post('/api/current-account-data', function (Request $request) use ($app) {
     }
     return $app->json($returnData, $responseCode);
 })->bind('current-account-data');
+
+$app->post('/api/account-data-date-range', function (Request $request) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    //$clients, $year, $to
+    $from = null;
+    $to = null;
+    $clients = null;
+    $vars = json_decode($request->getContent(), true);
+    if (!empty($vars['from'])) {
+        $from = $vars['from'];
+    }
+    if (!empty($vars['to'])) {
+        $to = $vars['to'];
+    }
+    if (!empty($vars['clients'])) {
+        $clients = $vars['clients'];
+    }
+    $returnData = [];
+    $forbidden = false;
+    if (empty($from) || empty($to) || empty($clients) || !is_array($clients)) {
+        $response = [
+            'success' => false,
+        ];
+        $returnData = ['message' => 'Bad params'];
+    } else {
+        $response = [
+            'success' => true,
+            'clients' => $app['users']->loadClientByUsername($token->getUsername()),
+        ];
+        $sendClients = [];
+        foreach($response['clients'] as $client) {
+            if ($client['permissions']['month-amount'] && in_array($client['id'], $clients)) {
+                $sendClients[] = $client['id'];
+            }
+        }
+        if (!empty($sendClients)) {
+            $returnData = $app['contableData']->returnCctePerClientsPerRange($sendClients, $from, $to);
+            $response = [
+                'success' => true,
+                'error' => '',
+                'data' => $returnData,
+            ];
+            if (isset($response['isvalid'])) {
+                unset($response['isvalid']);
+            }
+
+        } else {
+            $response['success'] = false;
+        }
+    }
+    $responseCode = null;
+    if ($forbidden) {
+        $responseCode = Response::HTTP_FORBIDDEN;
+    } else {
+        if ($response['success'] == true) {
+            $responseCode = Response::HTTP_OK;
+        }
+    }
+    if (empty($responseCode)) {
+        $responseCode = Response::HTTP_BAD_REQUEST;
+    }
+    return $app->json($response, $responseCode);
+})->bind('account-data-date-range');
+
 
 $app->get('/api/news', function (Request $request) use ($app) {
     $token = $app['security.token_storage']->getToken();
@@ -565,6 +628,7 @@ $app->post('/api/retrieve-account-for-clients', function (Request $request) use 
     ];
     return $app->json($response, ($response['success'] == true ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
 });
+
 $app->post('/api/retrieve-payments-for-clients', function (Request $request) use ($app) {
     $vars = json_decode($request->getContent(), true);
     $clients = isset($vars['clients']) ? $vars['clients'] : [];

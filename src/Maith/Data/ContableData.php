@@ -176,7 +176,7 @@ class ContableData
      */
     public function returnCcte($folder, $month, $year)
     {
-        $url = sprintf($this->urlCcte, $folder, $month, $year);
+        $url = sprintf($this->urlCcte, $folder, $month, $year). '?XDEBUG_SESSION_START=PHPSTORM';
         /** Test way **/
         //return $this->formatCcteResponse(json_decode($this->testCcte(), true));
         /** Object Way **/
@@ -309,22 +309,31 @@ class ContableData
         $totals = ['SaldoPesos' => 0, 'SaldoDolares' => 0];
         foreach ($clients as $clientId) {
             $data = $this->doCallClientAccountData($clientId, $month, $year);
-            if (array_key_exists('isvalid', $data) && $data['isvalid']) {
-                foreach ($data['data']['Clientes'] as $clientKey => $values) {
-                    if (array_key_exists('SaldoPesos', $values['SubtotalCliente'])) {
-                        $totals['SaldoPesos'] = $totals['SaldoPesos'] + $values['SubtotalCliente']['SaldoPesos'];
-                    }
-                    if (array_key_exists('SaldoPesos', $values['SubtotalCliente'])) {
-                        $totals['SaldoDolares'] = $totals['SaldoDolares'] + $values['SubtotalCliente']['SaldoDolares'];
-                    }
-                    $fullData['Clients'][$clientKey] = $values;
-                }
-            }
+            $parsed = $this->parseAccountsPerClientResponse($fullData, $totals, $data);
+            $fullData = $parsed['fullData'];
+            $totals = $parsed['totals'];
         }
         $fullData['totals'] = $totals;
         return $fullData;
     }
 
+    private function parseAccountsPerClientResponse($fullData, $totals, $data) {
+        if (array_key_exists('isvalid', $data) && $data['isvalid']) {
+            foreach ($data['data']['Clientes'] as $clientKey => $values) {
+                if (array_key_exists('SaldoPesos', $values['SubtotalCliente'])) {
+                    $totals['SaldoPesos'] = $totals['SaldoPesos'] + $values['SubtotalCliente']['SaldoPesos'];
+                }
+                if (array_key_exists('SaldoDolares', $values['SubtotalCliente'])) {
+                    $totals['SaldoDolares'] = $totals['SaldoDolares'] + $values['SubtotalCliente']['SaldoDolares'];
+                }
+                $fullData['Clients'][$clientKey] = $values;
+            }
+        }
+        return [
+            'totals' => $totals,
+            'fullData' => $fullData,
+        ];
+    }
     private function doCallClientAccountData($clientId, $month, $year)
     {
         $url = sprintf($this->urlAccountPerClient, $clientId, $month, $year);
@@ -496,4 +505,40 @@ class ContableData
         }
         return ['data' => []];
     }
+
+    public function returnCctePerClientsPerRange($clients, $dateFrom, $dateTo)
+    {
+        $url = $this->baseUrl. '/localhost/accounts-per-client/range-data.html';
+        /** Object Way **/
+        $client = new Client();
+        $response = $client->post($url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+            \GuzzleHttp\RequestOptions::JSON => [
+                'clients' => $clients,
+                'from' => $dateFrom,
+                'to' => $dateTo,
+            ]
+        ]);
+        if ($response) {
+            $data = json_decode($response->getBody()->getContents(), true);
+            $fullData = ['Clients' => []];
+            $totals = ['SaldoPesos' => 0, 'SaldoDolares' => 0];
+            $return = [];
+            if ($data['isvalid']) {
+                foreach ($data['data'] as $clientId => $clientData) {
+                    $parsed = $this->parseAccountsPerClientResponse($fullData, $totals, $clientData);
+                    $fullData = $parsed['fullData'];
+                    $totals = $parsed['totals'];
+                    $return[$clientId] = $fullData;
+                }
+                $fullData['totals'] = $totals;
+                return $fullData;
+            }
+            return $return;
+        }
+        return ['data' => []];
+    }
+
 }
