@@ -1377,3 +1377,22 @@ $app->post('/api/add-comment-to-task', function (Request $request) use ($app) {
     }
     return $app->json($returnData, ($response['success'] ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
 })->bind('add-comment-to-task');
+
+$app->post('/api/add-file-to-task/{id}', function (Request $request, $id) use ($app) {
+    $file = $request->files->get('file');
+    error_log(print_r($_FILES, true));
+    error_log(print_r($_POST, true));
+    if (!$file) {
+        return $app->json(array(
+            'success' => false,
+            'message' => 'No file uploaded'
+        ), 400);
+    }
+    // Forward to Symfony application
+    $result = $app['contableData']->uploadTaskFile(
+        $id,
+        $file
+    );
+
+    return $app->json($result);
+})->bind('add-file-to-task');

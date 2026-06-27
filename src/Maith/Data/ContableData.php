@@ -4,6 +4,7 @@ namespace Maith\Data;
 
 use Doctrine\DBAL\Connection;
 use GuzzleHttp\Client;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 class ContableData
 {
@@ -539,6 +540,32 @@ class ContableData
             return $return;
         }
         return ['data' => []];
+    }
+
+    public function uploadTaskFile($taskId, UploadedFile $file)
+    {
+        $client = new Client();
+        $url = sprintf($this->baseUrl. '/public/tasks/%s/add-file-to-task', $taskId);
+        $response = $client->request('POST', $url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+            'multipart' => [
+                [
+                    'name'     => 'file',
+                    'contents' => fopen($file->getRealPath(), 'r'),
+                    'filename' => $file->getClientOriginalName(),
+                    'headers'  => [
+                        'Content-Type' => $file->getMimeType(),
+                    ],
+                ],
+            ],
+        ]);
+        if ($response) {
+            $result = json_decode($response->getBody()->getContents(), true);
+            return $result;
+        }
+        return [];
     }
 
 }
