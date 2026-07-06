@@ -720,6 +720,8 @@ $app->get('/api/get-public-available-tasks', function () use ($app) {
 
 $app->post('/api/create-client-task', function (Request $request) use ($app) {
     $token = $app['security.token_storage']->getToken();
+    /** @var User $user */
+    $user = $app['users']->loadUserByUsername($token->getUsername());
     $folder = null;
     $createdBy = null;
     $taskId = null;
@@ -737,6 +739,7 @@ $app->post('/api/create-client-task', function (Request $request) use ($app) {
     if (!empty($vars['comment'])) {
         $comment = $vars['comment'];
     }
+    $createdBy = $user->getUsername();
     if (empty($folder) || empty($createdBy) || empty($taskId)) {
         $response = [
             'success' => false,
@@ -751,7 +754,7 @@ $app->post('/api/create-client-task', function (Request $request) use ($app) {
 })->bind('create-client-task');
 
 $app->post('/api/retrieve-user-created-client-task', function (Request $request) use ($app) {
-    $token = $app['security.token_storage']->getToken();
+    //$token = $app['security.token_storage']->getToken();
     $all = null;
     $user = null;
     $vars = json_decode($request->getContent(), true);
@@ -761,13 +764,17 @@ $app->post('/api/retrieve-user-created-client-task', function (Request $request)
     if (!empty($vars['user'])) {
         $user = $vars['user'];
     }
-    if ($all === null || empty($user)) {
+    $token = $app['security.token_storage']->getToken();
+    /** @var User $user */
+    $user = $app['users']->loadUserByUsername($token->getUsername());
+    $username = $user->getUsername();
+    if ($all === null) {
         $response = [
             'success' => false,
         ];
         $returnData = ['message' => 'Bad params'];
     } else {
-        $returnData = $app['contableData']->showUserPublicTask($all, $user);
+        $returnData = $app['contableData']->showUserPublicTask($all, $username);
         $response = ['success' => true];
 
     }
@@ -1351,7 +1358,6 @@ $app->get('/api/{id}/{fileId}/get-public-task-file', function (Request $request,
 
 
 $app->post('/api/add-comment-to-task', function (Request $request) use ($app) {
-    $token = $app['security.token_storage']->getToken();
     $createdBy = null;
     $taskId = null;
     $comment = '';
@@ -1365,6 +1371,10 @@ $app->post('/api/add-comment-to-task', function (Request $request) use ($app) {
     if (!empty($vars['comment'])) {
         $comment = $vars['comment'];
     }
+    $token = $app['security.token_storage']->getToken();
+    /** @var User $user */
+    $user = $app['users']->loadUserByUsername($token->getUsername());
+    $createdBy = $user->getUsername();
     if (empty($comment) || empty($createdBy) || empty($taskId)) {
         $response = [
             'success' => false,
@@ -1380,8 +1390,6 @@ $app->post('/api/add-comment-to-task', function (Request $request) use ($app) {
 
 $app->post('/api/add-file-to-task/{id}', function (Request $request, $id) use ($app) {
     $file = $request->files->get('file');
-    error_log(print_r($_FILES, true));
-    error_log(print_r($_POST, true));
     if (!$file) {
         return $app->json(array(
             'success' => false,
