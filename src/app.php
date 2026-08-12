@@ -54,7 +54,7 @@ $app['security.default_encoder'] = function ($app) {
 };
 
 $app['users'] = function () use ($app) {
-	return new \Maith\Security\UserProvider($app['dbs']['mysql_read'], $app['clientData']);
+	return new \Maith\Security\UserProvider($app['dbs']['mysql_read'], $app['clientData'], URL_CONTABLE_BASE_URL, CONTABLE_TOKEN);
 };
 
 $app['news'] = function () use ($app){
