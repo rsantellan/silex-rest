@@ -117,7 +117,7 @@ class UserProvider implements UserProviderInterface
 
     public function updateUserProfile($oldUser, $email, $firstName, $lastName, $username)
     {
-        $url = $this->baseUrl.'/public/security/retrieve-client-roles';
+        $url = $this->baseUrl.'/public/security/update-user';
         /** Object Way **/
         $client = new Client();
         $response = $client->post($url, [
@@ -258,7 +258,7 @@ class UserProvider implements UserProviderInterface
     {
         $userData = $this->externalRetrieveUser($username);
         if ($userData) {
-            return new User($userData['user']['email'], $userData['user']['email'], array('1'), true, true, true, true);
+            return new User($userData['email'], $userData['email'], array('1'), true, true, true, true);
         }
         return [];
     }

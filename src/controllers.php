@@ -707,7 +707,7 @@ $app->post('/api/profile/update', function (Request $request) use ($app) {
         $returnData['message'] = '';
     }
     return $app->json($returnData, ($response['success'] ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
-})->bind('edit-profile');
+})->bind('edit-profile-data');
 
 $app->post('/api/profile/change-password', function (Request $request) use ($app) {
     $token = $app['security.token_storage']->getToken();
@@ -724,7 +724,7 @@ $app->post('/api/profile/change-password', function (Request $request) use ($app
         $returnData['message'] = '';
     }
     return $app->json($returnData, ($response['success'] ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
-})->bind('edit-profile');
+})->bind('edit-profile-password');
 
 $app->delete('/api/admin/profile/{id}', function (Request $request, $id) use ($app) {
     $token = $app['security.token_storage']->getToken();

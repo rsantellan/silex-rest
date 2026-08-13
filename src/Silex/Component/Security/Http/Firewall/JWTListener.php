@@ -83,10 +83,14 @@ class JWTListener implements ListenerInterface {
 
             } catch (HttpEncodingException $e) {
                 //var_dump($e->getMessage());
+                error_log('Request token HttpEncodingException: ' . var_export($e->getMessage(), true));
             } catch (\UnexpectedValueException $e) {
                 //var_dump($e->getMessage());
+                error_log('Request token UnexpectedValueException: ' . var_export($e->getMessage(), true));
             } catch(\Exception $e){
                 //var_dump($e->getMessage());
+                error_log('Request token Exception: ' . var_export($e->getMessage(), true));
+                error_log('Request token Exception: ' . var_export($e->getTraceAsString(), true));
             }
         }
     }
