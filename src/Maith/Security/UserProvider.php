@@ -161,7 +161,7 @@ class UserProvider implements UserProviderInterface
         $rows = $this->conn->fetchAll($sql);
         $responseData = [];
         foreach ($rows as $row) {
-            $row['clients'] = $this->loadClientByUsername($row['email']);
+            $row['clients'] = $this->oldLoadClientByUsername($row['email']);
             $responseData[] = $this->migrateUser($row);
         }
         return $responseData;
@@ -262,4 +262,110 @@ class UserProvider implements UserProviderInterface
         }
         return [];
     }
+    /** THIS IS OLD FOR MIGRATING THE USERS ***/
+    public function oldLoadClientByUsername($email)
+    {
+        try{
+            $sql = 'select id, username, password, email, status, group_id, group_boss, client_id from tbl_users where email = ?';
+            $stmt = $this->conn->executeQuery($sql, array($email));
+            $data = $stmt->fetch();
+            $clientList = [];
+            $monthAmountPermissions = $this->getPermissionOfUser($data['email'], 'monthAmount');
+            //var_dump($monthAmountPermissions);
+            $accountsPermissions = $this->getPermissionOfUser($data['email'], 'accounts');
+            //var_dump($accountsPermissions);
+            $certificatesPermissions = $this->getPermissionOfUser($data['email'], 'certificates');
+            //var_dump($certificatesPermissions);
+            $filesPermissions = $this->getPermissionOfUser($data['email'], 'files');
+            //var_dump($filesPermissions);
+            $fullClientData = $this->clientData->getClientData($data['client_id'], $data['group_id']);
+            //var_dump($fullClientData);die;
+            $dbClientList = [];
+            $dbClientList = $this->mergeClientIds($dbClientList, $monthAmountPermissions);
+            $dbClientList = $this->mergeClientIds($dbClientList, $accountsPermissions);
+            $dbClientList = $this->mergeClientIds($dbClientList, $certificatesPermissions);
+            $dbClientList = $this->mergeClientIds($dbClientList, $filesPermissions);
+            $usedClientList = [];
+            if (!empty($fullClientData)) {
+                foreach ($fullClientData as $client) {
+                    $services = [
+                        'month-amount' => $this->checkClientInPermissionList($client['id'], $monthAmountPermissions),
+                        'current-account-data' => $this->checkClientInPermissionList($client['id'], $accountsPermissions),
+                        'files' => $this->checkClientInPermissionList($client['id'], $filesPermissions),
+                        'certificates' => $this->checkClientInPermissionList($client['id'], $certificatesPermissions),
+
+                    ];
+                    $client['permissions'] = $services;
+                    $clientList[] = $client;
+                    $usedClientList[] = $client['id'];
+                    if (array_key_exists($client['id'], $dbClientList)) {
+                        unset($dbClientList[$client['id']]);
+                    }
+                }
+            }
+            //var_dump($usedClientList);
+            if (!empty($dbClientList)) {
+                $fullOfDbClientData = $this->clientData->getClientDataByIdList($dbClientList);
+                if (!empty($fullOfDbClientData)) {
+                    foreach ($fullOfDbClientData as $client) {
+                        //var_dump($client['id']);
+                        //var_dump($usedClientList);
+                        if (!in_array($client['id'], $usedClientList)) {
+                            $services = [
+                                'month-amount' => $this->checkClientInPermissionList($client['id'], $monthAmountPermissions),
+                                'current-account-data' => $this->checkClientInPermissionList($client['id'], $accountsPermissions),
+                                'files' => $this->checkClientInPermissionList($client['id'], $filesPermissions),
+                                'certificates' => $this->checkClientInPermissionList($client['id'], $certificatesPermissions),
+
+                            ];
+                            $client['permissions'] = $services;
+                            $clientList[] = $client;
+                            $usedClientList[] = $client['id'];
+                        }
+                    }
+                }
+            }
+            return $clientList;
+        }catch(\Exception $e){
+            var_dump($e->getMessage());
+        }
+        return [];
+    }
+
+    public function getPermissionOfUser($email, $section)
+    {
+        $sql = "select data from AuthAssignment where itemname = ? and userid in (select id from tbl_users where email = ?) limit 1";
+        $stmt = $this->conn->executeQuery($sql, [$section, $email]);
+        $data = $stmt->fetch();
+        if (!empty($data['data'])) {
+            return unserialize($data['data']);
+        }
+        return [];
+    }
+
+    private function mergeClientIds($list, $permissionList)
+    {
+        if (is_array($permissionList)) {
+            $list = array_merge($list, $permissionList);
+        } else {
+            $list[] = $permissionList;
+        }
+        return $list;
+    }
+
+    private function checkClientInPermissionList($clientId, $permissionList)
+    {
+        $valid = false;
+        if (is_array($permissionList)) {
+            if (in_array($clientId, $permissionList)) {
+                $valid = true;
+            }
+        } else {
+            if ($clientId == $permissionList) {
+                $valid = true;
+            }
+        }
+        return $valid;
+    }
+
 }
