@@ -627,6 +627,7 @@ $app->post('/api/create-client-task', function (Request $request) use ($app) {
     $createdBy = null;
     $taskId = null;
     $comment = '';
+    $url = '';
     $vars = json_decode($request->getContent(), true);
     if (!empty($vars['folder'])) {
         $folder = $vars['folder'];
@@ -640,6 +641,9 @@ $app->post('/api/create-client-task', function (Request $request) use ($app) {
     if (!empty($vars['comment'])) {
         $comment = $vars['comment'];
     }
+    if (!empty($vars['url'])) {
+        $url = $vars['url'];
+    }
     $createdBy = $user->getUsername();
     if (empty($folder) || empty($createdBy) || empty($taskId)) {
         $response = [
@@ -647,7 +651,7 @@ $app->post('/api/create-client-task', function (Request $request) use ($app) {
         ];
         $returnData = ['message' => 'Bad params'];
     } else {
-        $returnData = $app['contableData']->createPublicTask($folder, $createdBy, $taskId, $comment);
+        $returnData = $app['contableData']->createPublicTask($folder, $createdBy, $taskId, $comment, $url);
         $response = ['success' => true];
 
     }

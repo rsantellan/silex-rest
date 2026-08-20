@@ -422,7 +422,7 @@ class ContableData
         ]);
     }
 
-    public function createPublicTask($folder, $createdBy, $taskId, $comment)
+    public function createPublicTask($folder, $createdBy, $taskId, $comment, $url = '')
     {
         $url = sprintf($this->baseUrl. '/public/tasks/%s/create-to-client', $taskId);
         /** Object Way **/
@@ -434,7 +434,8 @@ class ContableData
             \GuzzleHttp\RequestOptions::JSON => [
                 'folder' => $folder,
                 'createdBy' => $createdBy,
-                'comment' => $comment
+                'comment' => $comment,
+                'url' => $url
             ]
         ]);
         if ($response) {
