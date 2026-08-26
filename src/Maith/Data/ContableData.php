@@ -422,7 +422,7 @@ class ContableData
         ]);
     }
 
-    public function createPublicTask($folder, $createdBy, $taskId, $comment, $url = '')
+    public function createPublicTask($folder, $createdBy, $taskId, $comment, $callbackUrl = '')
     {
         $url = sprintf($this->baseUrl. '/public/tasks/%s/create-to-client', $taskId);
         /** Object Way **/
@@ -435,7 +435,7 @@ class ContableData
                 'folder' => $folder,
                 'createdBy' => $createdBy,
                 'comment' => $comment,
-                'url' => $url
+                'url' => $callbackUrl
             ]
         ]);
         if ($response) {
