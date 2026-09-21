@@ -608,16 +608,28 @@ $app->get('/api/get-client-expiration/{clientId}', function ($clientId) use ($ap
 
 
 $app->get('/api/get-public-available-tasks', function () use ($app) {
-
+    /**
     $response = [
         'success' => true,
         'message' => '',
         'data' => $app['contableData']->returnPublicAvailableTasks()
     ];
+    **/
     $returnData = $app['contableData']->returnPublicAvailableTasks();
 
     return $app->json($returnData, Response::HTTP_OK);
 })->bind('get-public-available-tasks');
+
+
+$app->get('/api/get-user-available-tasks', function () use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    /** @var User $user */
+    $user = $app['users']->loadUserByUsername($token->getUsername()); // CHECK
+    $username = $user->getUsername();
+    $returnData = $app['contableData']->retrieveUserPossibleTasks($username);
+
+    return $app->json($returnData, Response::HTTP_OK);
+})->bind('get-user-available-tasks');
 
 $app->post('/api/create-client-task', function (Request $request) use ($app) {
     $token = $app['security.token_storage']->getToken();
@@ -628,6 +640,7 @@ $app->post('/api/create-client-task', function (Request $request) use ($app) {
     $taskId = null;
     $comment = '';
     $url = '';
+    $finishDate = null;
     $vars = json_decode($request->getContent(), true);
     if (!empty($vars['folder'])) {
         $folder = $vars['folder'];
@@ -644,6 +657,9 @@ $app->post('/api/create-client-task', function (Request $request) use ($app) {
     if (!empty($vars['url'])) {
         $url = $vars['url'];
     }
+    if (!empty($vars['finishDate'])) {
+        $finishDate = $vars['finishDate'];
+    }
     $createdBy = $user->getUsername();
     if (empty($folder) || empty($createdBy) || empty($taskId)) {
         $response = [
@@ -651,7 +667,7 @@ $app->post('/api/create-client-task', function (Request $request) use ($app) {
         ];
         $returnData = ['message' => 'Bad params'];
     } else {
-        $returnData = $app['contableData']->createPublicTask($folder, $createdBy, $taskId, $comment, $url);
+        $returnData = $app['contableData']->createPublicTask($folder, $createdBy, $taskId, $comment, $url, $finishDate);
         $response = ['success' => true];
 
     }

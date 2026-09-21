@@ -422,7 +422,26 @@ class ContableData
         ]);
     }
 
-    public function createPublicTask($folder, $createdBy, $taskId, $comment, $callbackUrl = '')
+    public function retrieveUserPossibleTasks($user)
+    {
+        $url = $this->baseUrl. '/public/tasks/retrieve-user-clients-possible-tasks';
+        /** Object Way **/
+        $client = new Client();
+        $response = $client->post($url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+            \GuzzleHttp\RequestOptions::JSON => [
+                'user' => $user,
+            ]
+        ]);
+        if ($response) {
+            return json_decode($response->getBody()->getContents(), true);
+        }
+        return [];
+    }
+
+    public function createPublicTask($folder, $createdBy, $taskId, $comment, $callbackUrl = '', $finishDate = null)
     {
         $url = sprintf($this->baseUrl. '/public/tasks/%s/create-to-client', $taskId);
         /** Object Way **/
@@ -435,7 +454,8 @@ class ContableData
                 'folder' => $folder,
                 'createdBy' => $createdBy,
                 'comment' => $comment,
-                'url' => $callbackUrl
+                'url' => $callbackUrl,
+                'finishDate' => $finishDate
             ]
         ]);
         if ($response) {
