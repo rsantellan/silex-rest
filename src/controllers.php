@@ -674,6 +674,25 @@ $app->post('/api/create-client-task', function (Request $request) use ($app) {
     return $app->json($returnData, ($response['success'] ? Response::HTTP_OK : Response::HTTP_BAD_REQUEST));
 })->bind('create-client-task');
 
+$app->post('/api/create-client-task-with-file', function (Request $request) use ($app) {
+    $token = $app['security.token_storage']->getToken();
+    /** @var User $user */
+    $user = $app['users']->loadUserByUsername($token->getUsername()); // CHECK
+    // multipart/form-data: the fields come in the request bag, the optional file in 'file'
+    $folder = $request->request->get('folder');
+    $taskId = $request->request->get('taskId');
+    $comment = $request->request->get('comment', '');
+    $url = $request->request->get('url', '');
+    $finishDate = $request->request->get('finishDate');
+    $file = $request->files->get('file');
+    $createdBy = $user->getUsername();
+    if (empty($folder) || empty($createdBy) || empty($taskId)) {
+        return $app->json(['message' => 'Bad params'], Response::HTTP_BAD_REQUEST);
+    }
+    $returnData = $app['contableData']->createPublicTaskWithFile($folder, $createdBy, $taskId, $comment, $url, $finishDate, $file);
+    return $app->json($returnData, Response::HTTP_OK);
+})->bind('create-client-task-with-file');
+
 $app->post('/api/retrieve-user-created-client-task', function (Request $request) use ($app) {
     //$token = $app['security.token_storage']->getToken();
     $all = null;

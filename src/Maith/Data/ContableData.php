@@ -463,6 +463,39 @@ class ContableData
         }
         return ['data' => []];
     }
+    public function createPublicTaskWithFile($folder, $createdBy, $taskId, $comment, $callbackUrl = '', $finishDate = null, UploadedFile $file = null)
+    {
+        $url = sprintf($this->baseUrl. '/public/tasks/%s/create-to-client-with-file', $taskId);
+        $multipart = [
+            ['name' => 'folder', 'contents' => (string) $folder],
+            ['name' => 'createdBy', 'contents' => (string) $createdBy],
+            ['name' => 'comment', 'contents' => (string) $comment],
+            ['name' => 'url', 'contents' => (string) $callbackUrl],
+            ['name' => 'finishDate', 'contents' => (string) $finishDate],
+        ];
+        if ($file) {
+            $multipart[] = [
+                'name'     => 'file',
+                'contents' => fopen($file->getRealPath(), 'r'),
+                'filename' => $file->getClientOriginalName(),
+                'headers'  => [
+                    'Content-Type' => $file->getMimeType(),
+                ],
+            ];
+        }
+        $client = new Client();
+        $response = $client->post($url, [
+            'headers' => [
+                'Authorization' => 'Bearer '.$this->token,
+            ],
+            'multipart' => $multipart,
+        ]);
+        if ($response) {
+            return json_decode($response->getBody()->getContents(), true);
+        }
+        return ['data' => []];
+    }
+
     public function showUserPublicTask($all, $user)
     {
         $url = $this->baseUrl. '/public/tasks/retrieve-created-tasks';

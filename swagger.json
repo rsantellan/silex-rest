@@ -30,6 +30,10 @@
     {
       "name": "news",
       "description": "Noticias del sitio"
+    },
+    {
+      "name": "task",
+      "description": "Tareas del cliente"
     }
   ],
   "schemes": [
@@ -217,6 +221,87 @@
             "description": "successful operation",
             "schema": {
               "$ref": "#/definitions/NewsResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Permiso denegado"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/create-client-task-with-file": {
+      "post": {
+        "tags": [
+          "task"
+        ],
+        "summary": "Crea una tarea para un cliente con un archivo opcional",
+        "description": "Crea la tarea (y envia el email de creacion). Si se envia un archivo se adjunta a la tarea creada; si la subida falla, la tarea igual se crea y el error se informa en el campo file.",
+        "operationId": "createClientTaskWithFile",
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "formData",
+            "name": "folder",
+            "type": "string",
+            "required": true,
+            "description": "Carpeta del cliente"
+          },
+          {
+            "in": "formData",
+            "name": "taskId",
+            "type": "integer",
+            "format": "int32",
+            "required": true,
+            "description": "Id de la tarea a crear"
+          },
+          {
+            "in": "formData",
+            "name": "comment",
+            "type": "string",
+            "required": false,
+            "description": "Comentario"
+          },
+          {
+            "in": "formData",
+            "name": "url",
+            "type": "string",
+            "required": false,
+            "description": "Url publica de retorno"
+          },
+          {
+            "in": "formData",
+            "name": "finishDate",
+            "type": "string",
+            "format": "date",
+            "required": false,
+            "description": "Fecha de finalizacion (Y-m-d)"
+          },
+          {
+            "in": "formData",
+            "name": "file",
+            "type": "file",
+            "required": false,
+            "description": "Archivo a adjuntar (uno solo)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/CreateClientTaskWithFileResponse"
             }
           },
           "400": {
@@ -639,6 +724,46 @@
           "items": {
             "$ref": "#/definitions/News"
           }
+        }
+      }
+    },
+    "CreateClientTaskWithFileResponse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "folder": {
+          "type": "string"
+        },
+        "createdBy": {
+          "type": "string"
+        },
+        "clientId": {
+          "type": "integer",
+          "format": "int32",
+          "x-nullable": true
+        },
+        "clientTaskId": {
+          "type": "integer",
+          "format": "int32",
+          "x-nullable": true
+        },
+        "file": {
+          "$ref": "#/definitions/CreateClientTaskFileResult"
+        }
+      }
+    },
+    "CreateClientTaskFileResult": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "default": false
+        },
+        "message": {
+          "type": "string"
         }
       }
     }
